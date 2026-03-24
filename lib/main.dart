@@ -28,10 +28,17 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class GamePage extends StatelessWidget {
-  final Game _game = Game();
+class GamePage extends StatefulWidget {
+  const GamePage({super.key});
 
-  GamePage({super.key});
+  @override
+  State<StatefulWidget> createState() {
+    return _GamePageState();
+  }
+}
+
+class _GamePageState extends State<GamePage> {
+  final Game _game = Game();
 
   @override
   Widget build(BuildContext context) {
@@ -49,9 +56,11 @@ class GamePage extends StatelessWidget {
             ),
           GuessInput(
             onSubmitGuess: (String guess) {
+              setState(() {
+                _game.guess(guess);
+              });
               print(guess + "here"); // Temporary
               // TODO, handle guess
-              _game.guess(guess);
               print(_game.guesses);
             },
           ),
@@ -69,7 +78,7 @@ class Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
       width: 60,
       height: 60,
       decoration: BoxDecoration(
@@ -81,6 +90,8 @@ class Tile extends StatelessWidget {
           _ => Colors.white,
         },
       ),
+      duration: Duration(seconds: 10),
+      curve: Curves.bounceInOut,
       child: Center(
         child: Text(
           letter.toUpperCase(),
