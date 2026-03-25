@@ -33,7 +33,7 @@ class ArticleView extends StatelessWidget {
             viewModel.summary,
             viewModel.errorMessage,
           )) {
-            (true, _, _) => CircularProgressIndicator(),
+            (true, _, _) => Center(child: CircularProgressIndicator()),
             (false, _, String message) => Center(
               child: Text(message, style: TextStyle(color: Colors.red)),
             ),
@@ -69,9 +69,49 @@ class ArticlePage extends StatelessWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
-          Text(
-            "Generating random paragraphs can be an excellent way for writers to get their creative flow going at the beginning of the day. The writer has no idea what topic the random paragraph will be about when it appears. This forces the writer to use creativity to complete one of three common writing challenges. The writer can use the paragraph as the first one of a short story and build upon it. A second option is to use the random paragraph somewhere in a short story they create. The third option is to have the random paragraph be the ending paragraph in a short story. No matter which of these challenges is undertaken, the writer is forced to use creativity to incorporate the paragraph into their writing. Generating random paragraphs can be an excellent way for writers to get their creative flow going at the beginning of the day. The writer has no idea what topic the random paragraph will be about when it appears. This forces the writer to use creativity to complete one of three common writing challenges. The writer can use the paragraph as the first one of a short story and build upon it. A second option is to use the random paragraph somewhere in a short story they create. The third option is to have the random paragraph be the ending paragraph in a short story. No matter which of these challenges is undertaken, the writer is forced to use creativity to incorporate the paragraph into their writing.",
+          ArticleWidget(summary: summary),
+          ElevatedButton(
+            onPressed: nextArticleCallback,
+            child: Text('Next random article'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class ArticleWidget extends StatelessWidget {
+  const ArticleWidget({super.key, required this.summary});
+
+  final Summary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        spacing: 10.0,
+        children: [
+          if (summary.hasImage)
+            Image.network(
+              summary.originalImage!.source,
+              semanticLabel: summary.titles.normalized,
+              excludeFromSemantics: false,
+              color: Colors.indigo,
+              colorBlendMode: BlendMode.multiply,
+            ),
+          Text(
+            summary.titles.normalized,
+            overflow: TextOverflow.ellipsis,
+            style: TextTheme.of(context).displayMedium,
+          ),
+          if (summary.description != null)
+            Text(
+              summary.description!,
+              overflow: TextOverflow.ellipsis,
+              style: TextTheme.of(context).displaySmall,
+            ),
+          Text(summary.extract),
         ],
       ),
     );
