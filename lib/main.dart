@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:basics/game.dart';
+import 'BookManagement/main.dart' as wikipedia;
 
 void main() {
-  runApp(const MyApp());
+  // runApp(const MyApp());
+  runApp(const wikipedia.MainApp());
 }
 
 class MyApp extends StatelessWidget {
