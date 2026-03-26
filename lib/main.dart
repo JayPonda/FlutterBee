@@ -4,5 +4,5 @@ import './PhoneBook/main.dart' as phone_book;
 
 void main() {
   // runApp(const MyApp());
-  runApp(const phone_book.MyApp());
+  runApp(const phone_book.RolodexApp());
 }
