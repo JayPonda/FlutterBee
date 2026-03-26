@@ -1,6 +1,10 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 import 'contact_groups.dart';
+import 'contacts.dart';
+import 'master_detail_layout.dart';
+import 'navigation_example.dart';
 
 // New
 const largeScreenMinWidth = 600;
@@ -14,12 +18,7 @@ class AdaptiveLayout extends StatefulWidget {
 
 class _AdaptiveLayoutState extends State<AdaptiveLayout> {
   int selectedListId = 0;
-
-  void _onContactListSelected(int listId) {
-    setState(() {
-      selectedListId = listId;
-    });
-  }
+  int _selectedTabIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -28,33 +27,63 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
         final isLargeScreen = constraints.maxWidth > largeScreenMinWidth;
 
         if (isLargeScreen) {
-          return const Center(
-            child: Text(
-              'Large screen layout',
-              style: TextStyle(color: CupertinoColors.darkBackgroundGray),
-            ),
-          );
+          return _buildLargeScreenLayout();
         }
 
-        return const ContactGroupsPage();
+        return _buildSmallScreenLayout();
       },
-    ); // Temporary placeholder
+    );
+  }
+
+  Widget _buildSmallScreenLayout() {
+    return CupertinoTabScaffold(
+      tabBar: CupertinoTabBar(
+        currentIndex: _selectedTabIndex,
+        onTap: (int index) {
+          setState(() {
+            _selectedTabIndex = index;
+          });
+        },
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.book_fill),
+            label: 'Contacts',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.list_bullet),
+            label: 'Groups',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.forward),
+            label: 'Navigation',
+          ),
+        ],
+      ),
+      tabBuilder: (context, index) {
+        switch (index) {
+          case 0:
+            return CupertinoTabView(
+              builder: (context) => const ContactListsPage(listId: 0),
+            );
+          case 1:
+            return CupertinoTabView(
+              builder: (context) => const ContactGroupsPage(),
+            );
+          case 2:
+            return CupertinoTabView(
+              builder: (context) => const NavigationExamplePage(),
+            );
+          default:
+            return CupertinoTabView(
+              builder: (context) => const ContactListsPage(listId: 0),
+            );
+        }
+      },
+    );
   }
 
   // New
   Widget _buildLargeScreenLayout() {
-    return const CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.extraLightBackgroundGray,
-      child: SafeArea(
-        child: Row(
-          children: [
-            // Contact groups list:
-            Text('Sidebar'),
-            // List detail view:
-            Text('Details'),
-          ],
-        ),
-      ),
-    );
+    return const MasterDetailLayout();
   }
 }
