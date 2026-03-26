@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../data/contact_groups_model.dart';
 import '../data/models/contact.dart';
 import '../data/models/contact_group.dart';
+import '../theme/app_theme.dart';
 import 'contact_detail.dart';
 
 class ContactListsPage extends StatelessWidget {
@@ -88,15 +89,15 @@ class ContactListSection extends StatelessWidget {
             alignment: AlignmentDirectional.bottomStart,
             child: Text(
               lastInitial,
-              style: const TextStyle(
-                color: CupertinoColors.systemGrey,
+              style: TextStyle(
+                color: context.secondaryText,
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
           CupertinoListSection(
-            backgroundColor: CupertinoColors.systemBackground,
+            backgroundColor: context.primaryBackground,
             dividerMargin: 0,
             additionalDividerMargin: 0,
             topMargin: 4,

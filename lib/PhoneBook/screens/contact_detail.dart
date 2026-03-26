@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../data/models/contact.dart';
+import '../theme/app_theme.dart';
 
 /// Detail page for a single contact
 /// Demonstrates route navigation with parameters
@@ -12,11 +13,14 @@ class ContactDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLargeScreen = MediaQuery.of(context).size.width > 600;
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(contact.fullName),
-        previousPageTitle: 'Back',
-      ),
+      navigationBar: isLargeScreen
+          ? null
+          : CupertinoNavigationBar(
+              middle: Text(contact.fullName),
+              previousPageTitle: 'Back',
+            ),
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
@@ -28,9 +32,9 @@ class ContactDetailPage extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemBackground,
+                  color: context.secondaryBackground,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: CupertinoColors.separator),
+                  border: Border.all(color: context.dividerColor),
                 ),
                 child: Column(
                   children: [
@@ -49,6 +53,7 @@ class ContactDetailPage extends StatelessWidget {
                             color: CupertinoColors.white,
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
+                            inherit: false,
                           ),
                         ),
                       ),
@@ -56,9 +61,10 @@ class ContactDetailPage extends StatelessWidget {
                     const SizedBox(height: 16),
                     Text(
                       contact.fullName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
+                        color: context.primaryText,
                       ),
                     ),
                   ],
@@ -66,12 +72,12 @@ class ContactDetailPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               // Contact information section
-              const Text(
+              Text(
                 'CONTACT INFORMATION',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: CupertinoColors.systemGrey,
+                  color: context.secondaryText,
                 ),
               ),
               const SizedBox(height: 12),
@@ -150,9 +156,9 @@ class _ContactInfoTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
-          color: CupertinoColors.extraLightBackgroundGray,
+          color: context.tertiaryBackground,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: CupertinoColors.separator),
+          border: Border.all(color: context.dividerColor),
         ),
         child: Row(
           children: [
@@ -164,18 +170,19 @@ class _ContactInfoTile extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: CupertinoColors.systemGrey,
+                      color: context.secondaryText,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
+                      color: context.primaryText,
                     ),
                   ),
                 ],

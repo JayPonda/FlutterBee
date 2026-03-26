@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import '../data/contact_groups_model.dart';
 import '../data/models/contact.dart';
 import '../data/models/contact_group.dart';
+import '../theme/app_theme.dart';
 
 class ContactGroupsPage extends StatelessWidget {
   const ContactGroupsPage({super.key});
@@ -28,7 +29,7 @@ class _ContactGroupsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.extraLightBackgroundGray,
+      backgroundColor: context.primaryBackground,
       child: CustomScrollView(
         slivers: [
           const CupertinoSliverNavigationBar(largeTitle: Text('Lists')),

@@ -1,6 +1,9 @@
 import 'package:flutter/cupertino.dart';
 
 import '../data/contact_groups_model.dart';
+import '../main.dart';
+import '../theme/app_theme.dart';
+import '../theme/theme_provider.dart';
 import 'contact_detail.dart';
 
 /// Navigation example page demonstrating different navigation patterns
@@ -11,8 +14,9 @@ class NavigationExamplePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Navigation Examples'),
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Navigation Examples'),
+        trailing: _buildThemeToggleButton(context),
       ),
       child: SafeArea(
         child: SingleChildScrollView(
@@ -20,6 +24,10 @@ class NavigationExamplePage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Theme Selector Section
+              _buildThemeSelectorSection(context),
+              const SizedBox(height: 24),
+
               // Example 1: Imperative Navigation (push)
               _NavSection(
                 title: '1. Imperative Navigation (Push)',
@@ -132,9 +140,9 @@ class NavigationExamplePage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12.0),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.extraLightBackgroundGray,
+                  color: context.tertiaryBackground,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: CupertinoColors.separator),
+                  border: Border.all(color: context.dividerColor),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,6 +173,93 @@ class NavigationExamplePage extends StatelessWidget {
       ),
     );
   }
+
+  /// Build theme toggle button for the navigation bar
+  Widget _buildThemeToggleButton(BuildContext context) {
+    final themeProvider = RolodexApp.of(context);
+    return CupertinoButton(
+      padding: const EdgeInsets.all(8),
+      onPressed: () => _showThemeOptions(context, themeProvider),
+      child: Icon(
+        themeProvider.themeMode == ThemeMode.dark
+            ? CupertinoIcons.moon_fill
+            : themeProvider.themeMode == ThemeMode.light
+            ? CupertinoIcons.sun_max_fill
+            : CupertinoIcons.circle_fill,
+      ),
+    );
+  }
+
+  /// Build theme selector section
+  Widget _buildThemeSelectorSection(BuildContext context) {
+    final themeProvider = RolodexApp.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: context.secondaryBackground,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Theme Settings',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: context.primaryText,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                'Current: ${themeProvider.themeMode.label}',
+                style: TextStyle(color: context.secondaryText),
+              ),
+              const Spacer(),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                color: CupertinoColors.systemBlue,
+                onPressed: () => _showThemeOptions(context, themeProvider),
+                child: const Text('Change'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show theme selection options
+  void _showThemeOptions(BuildContext context, ThemeProvider themeProvider) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: const Text('Select Theme'),
+        actions: <CupertinoActionSheetAction>[
+          for (final mode in ThemeMode.values)
+            CupertinoActionSheetAction(
+              isDefaultAction: themeProvider.themeMode == mode,
+              onPressed: () {
+                themeProvider.setThemeMode(mode);
+                Navigator.pop(context);
+              },
+              child: Text(mode.label),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDestructiveAction: true,
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
 }
 
 /// Reusable navigation section widget
@@ -190,7 +285,7 @@ class _NavSection extends StatelessWidget {
         decoration: BoxDecoration(
           color: enabled
               ? CupertinoColors.systemBlue
-              : CupertinoColors.systemGrey5,
+              : context.secondaryBackground,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
@@ -201,9 +296,7 @@ class _NavSection extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: enabled
-                    ? CupertinoColors.white
-                    : CupertinoColors.systemGrey,
+                color: enabled ? CupertinoColors.white : context.secondaryText,
               ),
             ),
             const SizedBox(height: 4),
@@ -213,7 +306,7 @@ class _NavSection extends StatelessWidget {
                 fontSize: 12,
                 color: enabled
                     ? CupertinoColors.white.withOpacity(0.9)
-                    : CupertinoColors.systemGrey,
+                    : context.secondaryText,
               ),
             ),
           ],

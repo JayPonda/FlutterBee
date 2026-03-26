@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
 import '../data/contact_groups_model.dart';
 import '../data/models/contact.dart';
 import '../data/models/contact_group.dart';
+import '../main.dart';
+import '../theme/app_theme.dart';
+import '../theme/theme_provider.dart';
 
 /// Master-Detail layout for large screens (tablets)
 /// Shows navigation sidebar on the left and content on the right
@@ -46,7 +48,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
             _buildNavigationSidebar(),
 
             // Divider
-            Container(width: 1, color: CupertinoColors.separator),
+            Container(width: 1, color: context.dividerColor),
 
             // Right panel: Content Area
             Expanded(child: _buildContentArea()),
@@ -61,7 +63,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
     return SizedBox(
       width: 280,
       child: Container(
-        color: CupertinoColors.systemBackground,
+        color: context.primaryBackground,
         child: Column(
           children: [
             // App Logo/Header
@@ -69,10 +71,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(
-                    color: CupertinoColors.separator,
-                    width: 0.5,
-                  ),
+                  bottom: BorderSide(color: context.dividerColor, width: 0.5),
                 ),
               ),
               child: Column(
@@ -94,9 +93,13 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Rolodex',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: context.primaryText,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -128,7 +131,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
               padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: CupertinoColors.separator, width: 0.5),
+                  top: BorderSide(color: context.dividerColor, width: 0.5),
                 ),
               ),
               child: Row(
@@ -149,18 +152,19 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'User Name',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
+                            color: context.primaryText,
                           ),
                         ),
                         Text(
                           'Premium',
                           style: TextStyle(
                             fontSize: 10,
-                            color: CupertinoColors.systemGrey,
+                            color: context.secondaryText,
                           ),
                         ),
                       ],
@@ -184,7 +188,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
       decoration: BoxDecoration(
         color: isSelected
             ? CupertinoColors.systemBlue.withOpacity(0.15)
-            : CupertinoColors.systemBackground,
+            : context.primaryBackground,
         borderRadius: BorderRadius.circular(10),
       ),
       child: CupertinoButton(
@@ -212,7 +216,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
                 style: TextStyle(
                   color: isSelected
                       ? CupertinoColors.systemBlue
-                      : CupertinoColors.label,
+                      : context.primaryText,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   fontSize: 16,
                 ),
@@ -232,6 +236,12 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
 
   /// Right panel: Content Area
   Widget _buildContentArea() {
+    // If a contact is selected, show the detail view
+    if (_selectedContact != null) {
+      return _buildContactDetailView(_selectedContact!);
+    }
+
+    // Otherwise, show content based on selected section
     switch (_selectedSection) {
       case NavigationSection.allContacts:
         return _buildAllContactsContent();
@@ -249,7 +259,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
   /// All Contacts content
   Widget _buildAllContactsContent() {
     return Container(
-      color: CupertinoColors.systemBackground,
+      color: context.primaryBackground,
       child: ValueListenableBuilder<List<ContactGroup>>(
         valueListenable: contactGroupsModel.listsNotifier,
         builder: (context, groups, _) {
@@ -290,7 +300,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
   /// Groups content
   Widget _buildGroupsContent() {
     return Container(
-      color: CupertinoColors.systemBackground,
+      color: context.primaryBackground,
       child: ValueListenableBuilder<List<ContactGroup>>(
         valueListenable: contactGroupsModel.listsNotifier,
         builder: (context, groups, _) {
@@ -345,7 +355,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
   /// Favorites content
   Widget _buildFavoritesContent() {
     return Container(
-      color: CupertinoColors.systemBackground,
+      color: context.primaryBackground,
       child: CustomScrollView(
         slivers: [
           const CupertinoSliverNavigationBar(largeTitle: Text('Favorites')),
@@ -388,7 +398,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
   /// Recent content
   Widget _buildRecentContent() {
     return Container(
-      color: CupertinoColors.systemBackground,
+      color: context.primaryBackground,
       child: CustomScrollView(
         slivers: [
           const CupertinoSliverNavigationBar(largeTitle: Text('Recent')),
@@ -431,7 +441,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
   /// Settings content
   Widget _buildSettingsContent() {
     return Container(
-      color: CupertinoColors.systemBackground,
+      color: context.primaryBackground,
       child: CustomScrollView(
         slivers: [
           const CupertinoSliverNavigationBar(largeTitle: Text('Settings')),
@@ -447,9 +457,237 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
                   title: const Text('Sort Order'),
                   trailing: const Text('Last Name'),
                 ),
-                CupertinoListTile(
-                  title: const Text('Theme'),
-                  trailing: const Text('System'),
+                _buildThemeSelector(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Theme selector tile with dropdown-like functionality
+  Widget _buildThemeSelector() {
+    final themeProvider = RolodexApp.of(context);
+    final currentMode = themeProvider.themeMode;
+
+    return CupertinoListTile(
+      title: const Text('Theme'),
+      trailing: GestureDetector(
+        onTap: () => _showThemeOptions(context, themeProvider),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              currentMode.label,
+              style: TextStyle(color: context.secondaryText, fontSize: 16),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              CupertinoIcons.chevron_right,
+              color: context.secondaryText,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+      onTap: () => _showThemeOptions(context, themeProvider),
+    );
+  }
+
+  /// Show theme selection options
+  void _showThemeOptions(BuildContext context, ThemeProvider themeProvider) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: const Text('Select Theme'),
+        actions: <CupertinoActionSheetAction>[
+          for (final mode in ThemeMode.values)
+            CupertinoActionSheetAction(
+              isDefaultAction: themeProvider.themeMode == mode,
+              onPressed: () {
+                themeProvider.setThemeMode(mode);
+                Navigator.pop(context);
+              },
+              child: Text(mode.label),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDestructiveAction: true,
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  /// Contact detail view for inline display on large screens
+  Widget _buildContactDetailView(Contact contact) {
+    return Container(
+      color: context.primaryBackground,
+      child: CustomScrollView(
+        slivers: [
+          CupertinoSliverNavigationBar(
+            largeTitle: Text(contact.fullName),
+            previousPageTitle: 'Back',
+            trailing: CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () {
+                setState(() {
+                  _selectedContact = null;
+                });
+              },
+              child: const Text('Done'),
+            ),
+          ),
+          SliverFillRemaining(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Contact header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: context.secondaryBackground,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.dividerColor),
+                    ),
+                    child: Column(
+                      children: [
+                        // Initials circle
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.systemBlue,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${contact.firstName[0]}${contact.lastName[0]}',
+                              style: const TextStyle(
+                                color: CupertinoColors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          contact.fullName,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: context.primaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Contact information section
+                  Text(
+                    'CONTACT INFORMATION',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: context.secondaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Phone number
+                  if (contact.phoneNumber != null) ...[
+                    _buildInfoTile(
+                      icon: CupertinoIcons.phone_fill,
+                      label: 'Phone',
+                      value: contact.phoneNumber!,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  // Email
+                  if (contact.email != null) ...[
+                    _buildInfoTile(
+                      icon: CupertinoIcons.mail_solid,
+                      label: 'Email',
+                      value: contact.email!,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  const SizedBox(height: 24),
+                  // Action buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CupertinoButton(
+                          color: CupertinoColors.systemBlue,
+                          onPressed: () {
+                            debugPrint('Edit ${contact.fullName}');
+                          },
+                          child: const Text('Edit'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: CupertinoButton(
+                          color: CupertinoColors.systemRed,
+                          onPressed: () {
+                            debugPrint('Delete ${contact.fullName}');
+                          },
+                          child: const Text('Delete'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Reusable info tile widget
+  Widget _buildInfoTile({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: context.tertiaryBackground,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.dividerColor),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: CupertinoColors.systemBlue, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.secondaryText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: context.primaryText,
+                  ),
                 ),
               ],
             ),
@@ -473,15 +711,15 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
               initial,
-              style: const TextStyle(
-                color: CupertinoColors.systemGrey,
+              style: TextStyle(
+                color: context.secondaryText,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
           CupertinoListSection(
-            backgroundColor: CupertinoColors.systemBackground,
+            backgroundColor: context.primaryBackground,
             dividerMargin: 0,
             topMargin: 4,
             children: [
