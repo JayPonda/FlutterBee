@@ -166,7 +166,10 @@ class _ContactDetailContent extends StatelessWidget {
                   color: CupertinoColors.systemBlue,
                   onPressed:
                       onEdit ?? () => debugPrint('Edit ${contact.fullName}'),
-                  child: const Text('Edit'),
+                  child: const Text(
+                    'Edit',
+                    style: TextStyle(color: CupertinoColors.white),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -176,7 +179,10 @@ class _ContactDetailContent extends StatelessWidget {
                   onPressed:
                       onDelete ??
                       () => debugPrint('Delete ${contact.fullName}'),
-                  child: const Text('Delete'),
+                  child: const Text(
+                    'Delete',
+                    style: TextStyle(color: CupertinoColors.white),
+                  ),
                 ),
               ),
             ],
