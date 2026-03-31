@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
 import 'contact_groups.dart';
 import 'contacts.dart';
 import 'master_detail_layout.dart';
 import 'navigation_example.dart';
+import 'settings.dart';
 
 // New
 const largeScreenMinWidth = 600;
@@ -57,6 +57,10 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
             icon: Icon(CupertinoIcons.forward),
             label: 'Navigation',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.settings),
+            label: 'Settings',
+          ),
         ],
       ),
       tabBuilder: (context, index) {
@@ -73,6 +77,8 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
             return CupertinoTabView(
               builder: (context) => const NavigationExamplePage(),
             );
+          case 3:
+            return CupertinoTabView(builder: (context) => const SettingsPage());
           default:
             return CupertinoTabView(
               builder: (context) => const ContactListsPage(listId: 0),

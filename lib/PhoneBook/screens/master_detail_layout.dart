@@ -3,9 +3,8 @@ import 'package:flutter/cupertino.dart';
 import '../data/contact_groups_model.dart';
 import '../data/models/contact.dart';
 import '../data/models/contact_group.dart';
-import '../main.dart';
 import '../theme/app_theme.dart';
-import '../theme/theme_provider.dart';
+import 'settings.dart';
 
 /// Master-Detail layout for large screens (tablets)
 /// Shows navigation sidebar on the left and content on the right
@@ -187,7 +186,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
       margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       decoration: BoxDecoration(
         color: isSelected
-            ? CupertinoColors.systemBlue.withOpacity(0.15)
+            ? CupertinoColors.systemBlue.withValues(alpha: 0.15)
             : context.primaryBackground,
         borderRadius: BorderRadius.circular(10),
       ),
@@ -252,7 +251,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
       case NavigationSection.recent:
         return _buildRecentContent();
       case NavigationSection.settings:
-        return _buildSettingsContent();
+        return const SettingsContent();
     }
   }
 
@@ -434,89 +433,6 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// Settings content
-  Widget _buildSettingsContent() {
-    return Container(
-      color: context.primaryBackground,
-      child: CustomScrollView(
-        slivers: [
-          const CupertinoSliverNavigationBar(largeTitle: Text('Settings')),
-          SliverFillRemaining(
-            child: CupertinoListSection.insetGrouped(
-              header: const Text('App Settings'),
-              children: [
-                CupertinoListTile(
-                  title: const Text('Notifications'),
-                  trailing: CupertinoSwitch(value: true, onChanged: (value) {}),
-                ),
-                CupertinoListTile(
-                  title: const Text('Sort Order'),
-                  trailing: const Text('Last Name'),
-                ),
-                _buildThemeSelector(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Theme selector tile with dropdown-like functionality
-  Widget _buildThemeSelector() {
-    final themeProvider = RolodexApp.of(context);
-    final currentMode = themeProvider.themeMode;
-
-    return CupertinoListTile(
-      title: const Text('Theme'),
-      trailing: GestureDetector(
-        onTap: () => _showThemeOptions(context, themeProvider),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              currentMode.label,
-              style: TextStyle(color: context.secondaryText, fontSize: 16),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              CupertinoIcons.chevron_right,
-              color: context.secondaryText,
-              size: 18,
-            ),
-          ],
-        ),
-      ),
-      onTap: () => _showThemeOptions(context, themeProvider),
-    );
-  }
-
-  /// Show theme selection options
-  void _showThemeOptions(BuildContext context, ThemeProvider themeProvider) {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (BuildContext context) => CupertinoActionSheet(
-        title: const Text('Select Theme'),
-        actions: <CupertinoActionSheetAction>[
-          for (final mode in ThemeMode.values)
-            CupertinoActionSheetAction(
-              isDefaultAction: themeProvider.themeMode == mode,
-              onPressed: () {
-                themeProvider.setThemeMode(mode);
-                Navigator.pop(context);
-              },
-              child: Text(mode.label),
-            ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDestructiveAction: true,
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
       ),
     );
   }
