@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../data/models/contact.dart';
 import '../theme/app_theme.dart';
+import 'adaptive_layout.dart';
 import 'pages/contact_detail_page.dart';
 import 'pages/contacts_page.dart';
 import 'pages/favorites_page.dart';
@@ -10,34 +11,25 @@ import 'pages/recent_page.dart';
 import 'settings.dart';
 
 /// Master-Detail layout for large screens (tablets)
-/// Shows navigation sidebar on the left and content on the right
-/// Demonstrates responsive navigation patterns for iPad-sized screens
-class MasterDetailLayout extends StatefulWidget {
-  const MasterDetailLayout({super.key});
+class MasterDetailLayout extends StatelessWidget {
+  const MasterDetailLayout({
+    super.key,
+    required this.selectedSection,
+    required this.selectedGroupId,
+    this.selectedContact,
+    required this.onSectionChanged,
+    required this.onContactSelected,
+    required this.onGroupSelected,
+    required this.onBackToContacts,
+  });
 
-  @override
-  State<MasterDetailLayout> createState() => _MasterDetailLayoutState();
-}
-
-enum NavigationSection {
-  allContacts('All Contacts', CupertinoIcons.person_fill),
-  groups('Groups', CupertinoIcons.group),
-  favorites('Favorites', CupertinoIcons.star_fill),
-  recent('Recent', CupertinoIcons.clock),
-  settings('Settings', CupertinoIcons.settings);
-
-  final String label;
-  final IconData icon;
-
-  const NavigationSection(this.label, this.icon);
-}
-
-class _MasterDetailLayoutState extends State<MasterDetailLayout> {
-  NavigationSection _selectedSection = NavigationSection.allContacts;
-  // ignore: unused_field
-  int _selectedGroupId = 0;
-  // ignore: unused_field
-  Contact? _selectedContact;
+  final NavigationSection selectedSection;
+  final int selectedGroupId;
+  final Contact? selectedContact;
+  final ValueChanged<NavigationSection> onSectionChanged;
+  final ValueChanged<Contact> onContactSelected;
+  final ValueChanged<int> onGroupSelected;
+  final VoidCallback onBackToContacts;
 
   @override
   Widget build(BuildContext context) {
@@ -47,13 +39,13 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
         child: Row(
           children: [
             // Left panel: Navigation Sidebar
-            _buildNavigationSidebar(),
+            _buildNavigationSidebar(context),
 
             // Divider
             Container(width: 1, color: context.dividerColor),
 
             // Right panel: Content Area
-            Expanded(child: _buildContentArea()),
+            Expanded(child: _buildContentArea(context)),
           ],
         ),
       ),
@@ -61,7 +53,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
   }
 
   /// Left panel: Navigation Sidebar
-  Widget _buildNavigationSidebar() {
+  Widget _buildNavigationSidebar(BuildContext context) {
     return SizedBox(
       width: 280,
       child: Container(
@@ -104,7 +96,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  const Text(
                     'Contact Manager',
                     style: TextStyle(
                       fontSize: 12,
@@ -122,7 +114,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
                 child: Column(
                   children: [
                     for (final section in NavigationSection.values)
-                      _buildNavItem(section),
+                      _buildNavItem(context, section),
                   ],
                 ),
               ),
@@ -182,8 +174,8 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
   }
 
   /// Individual navigation item
-  Widget _buildNavItem(NavigationSection section) {
-    final isSelected = _selectedSection == section;
+  Widget _buildNavItem(BuildContext context, NavigationSection section) {
+    final isSelected = selectedSection == section;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -195,13 +187,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
       ),
       child: CupertinoButton(
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-        onPressed: () {
-          setState(() {
-            _selectedSection = section;
-            _selectedContact = null;
-            _selectedGroupId = 0;
-          });
-        },
+        onPressed: () => onSectionChanged(section),
         child: Row(
           children: [
             Icon(
@@ -225,7 +211,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
               ),
             ),
             if (isSelected)
-              Icon(
+              const Icon(
                 CupertinoIcons.checkmark,
                 color: CupertinoColors.systemBlue,
                 size: 16,
@@ -237,38 +223,25 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout> {
   }
 
   /// Right panel: Content Area
-  Widget _buildContentArea() {
+  Widget _buildContentArea(BuildContext context) {
     // If a contact is selected, show the detail view
-    if (_selectedContact != null) {
+    if (selectedContact != null) {
       return ContactDetailContent(
-        contact: _selectedContact!,
-        onBack: () {
-          setState(() {
-            _selectedContact = null;
-          });
-        },
+        contact: selectedContact!,
+        onBack: onBackToContacts,
       );
     }
 
     // Otherwise, show content based on selected section
-    switch (_selectedSection) {
+    switch (selectedSection) {
       case NavigationSection.allContacts:
         return ContactsContent(
-          listId: _selectedGroupId,
-          onContactSelected: (contact) {
-            setState(() {
-              _selectedContact = contact;
-            });
-          },
+          listId: selectedGroupId,
+          onContactSelected: onContactSelected,
         );
       case NavigationSection.groups:
         return GroupsContent(
-          onGroupSelected: (group) {
-            setState(() {
-              _selectedSection = NavigationSection.allContacts;
-              _selectedGroupId = group.id;
-            });
-          },
+          onGroupSelected: (group) => onGroupSelected(group.id),
         );
       case NavigationSection.favorites:
         return const FavoritesContent();
