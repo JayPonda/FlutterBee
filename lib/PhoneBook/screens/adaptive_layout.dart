@@ -1,9 +1,10 @@
 import 'package:flutter/cupertino.dart';
 
-import 'contact_groups.dart';
-import 'contacts.dart';
 import 'master_detail_layout.dart';
-import 'navigation_example.dart';
+import 'pages/contacts_page.dart';
+import 'pages/favorites_page.dart';
+import 'pages/groups_page.dart';
+import 'pages/recent_page.dart';
 import 'settings.dart';
 
 // New
@@ -54,8 +55,12 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
             label: 'Groups',
           ),
           BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.forward),
-            label: 'Navigation',
+            icon: Icon(CupertinoIcons.star_fill),
+            label: 'Favorites',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.clock),
+            label: 'Recent',
           ),
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.settings),
@@ -67,21 +72,21 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
         switch (index) {
           case 0:
             return CupertinoTabView(
-              builder: (context) => const ContactListsPage(listId: 0),
+              builder: (context) => const ContactsPage(listId: 0),
             );
           case 1:
-            return CupertinoTabView(
-              builder: (context) => const ContactGroupsPage(),
-            );
+            return CupertinoTabView(builder: (context) => const GroupsPage());
           case 2:
             return CupertinoTabView(
-              builder: (context) => const NavigationExamplePage(),
+              builder: (context) => const FavoritesPage(),
             );
           case 3:
+            return CupertinoTabView(builder: (context) => const RecentPage());
+          case 4:
             return CupertinoTabView(builder: (context) => const SettingsPage());
           default:
             return CupertinoTabView(
-              builder: (context) => const ContactListsPage(listId: 0),
+              builder: (context) => const ContactsPage(listId: 0),
             );
         }
       },
