@@ -1,5 +1,5 @@
+import 'package:basics/PhoneBook/screens/app_loader.dart';
 import 'package:basics/PhoneBook/screens/app_routes.dart';
-import 'package:basics/PhoneBook/screens/adaptive_layout.dart';
 import 'package:basics/PhoneBook/theme/app_theme.dart';
 import 'package:basics/PhoneBook/theme/theme_provider.dart';
 import 'package:flutter/cupertino.dart';
@@ -14,8 +14,8 @@ class RolodexApp extends StatefulWidget {
   /// Using dependOnInheritedWidgetOfExactType ensures that the calling widget
   /// will rebuild when the ThemeProvider notifies listeners.
   static ThemeProvider of(BuildContext context) {
-    final inherited =
-        context.dependOnInheritedWidgetOfExactType<_ThemeInheritedWidget>();
+    final inherited = context
+        .dependOnInheritedWidgetOfExactType<_ThemeInheritedWidget>();
     return inherited?.themeProvider ?? ThemeProvider();
   }
 }
@@ -73,9 +73,9 @@ class _RolodexAppState extends State<RolodexApp> {
         theme: isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
         // Configure named routes
         onGenerateRoute: generateRoute,
-        // Set initial route
-        initialRoute: AppRoutes.home,
-        home: const AdaptiveLayout(),
+        // Set home to app loader (shows native splash during init)
+        home: const AppLoader(),
+        debugShowCheckedModeBanner: false,
       ),
     );
   }

@@ -3,6 +3,5 @@ import 'package:flutter/material.dart';
 import './PhoneBook/main.dart' as phone_book;
 
 void main() {
-  // runApp(const MyApp());
   runApp(const phone_book.RolodexApp());
 }
