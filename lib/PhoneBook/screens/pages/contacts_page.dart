@@ -17,6 +17,43 @@ class ContactsPage extends StatefulWidget {
 }
 
 class _ContactsPageState extends State<ContactsPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  AlphabetizedContactMap _filterContacts(List<Contact> contacts) {
+    final query = _searchQuery.toLowerCase().trim();
+    if (query.isEmpty) {
+      return _alphabetizeContacts(contacts);
+    }
+
+    final filtered = contacts.where((contact) {
+      return contact.fullName.toLowerCase().contains(query) ||
+          (contact.phoneNumber?.contains(query) ?? false) ||
+          (contact.email?.toLowerCase().contains(query) ?? false);
+    }).toList();
+
+    return _alphabetizeContacts(filtered);
+  }
+
+  AlphabetizedContactMap _alphabetizeContacts(List<Contact> contacts) {
+    final Map<String, List<Contact>> grouped = {};
+    for (final contact in contacts) {
+      final key = contact.alphabeticalKey;
+      grouped.putIfAbsent(key, () => []);
+      grouped[key]!.add(contact);
+    }
+    final sortedKeys = grouped.keys.toList()..sort();
+    return Map.fromEntries(
+      sortedKeys.map((key) => MapEntry(key, grouped[key]!)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
@@ -26,39 +63,75 @@ class _ContactsPageState extends State<ContactsPage> {
           final ContactGroup contactList = contactGroupsModel.findContactList(
             widget.listId,
           );
-          final AlphabetizedContactMap contacts =
-              contactList.alphabetizedContacts;
+          final allContacts = contactList.contacts;
+          final filteredContacts = _filterContacts(allContacts);
 
           return CustomScrollView(
             slivers: [
               CupertinoSliverNavigationBar.search(
                 largeTitle: Text(contactList.title),
-                searchField: const CupertinoSearchTextField(
-                  suffixIcon: Icon(CupertinoIcons.mic_fill),
+                searchField: CupertinoSearchTextField(
+                  controller: _searchController,
+                  suffixIcon: const Icon(CupertinoIcons.mic_fill),
                   suffixMode: OverlayVisibilityMode.always,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
                 ),
               ),
-              SliverList.list(
-                children: [
-                  const SizedBox(height: 20),
-                  ...contacts.keys.map(
-                    (String initial) => _ContactListSection(
-                      lastInitial: initial,
-                      contacts: contacts[initial]!,
-                      onContactSelected: (contact) {
-                        // On small screen, we navigate to the detail page
-                        Navigator.of(context).push(
-                          CupertinoPageRoute(
-                            builder: (context) => ContactDetailPage(
-                              contact: contact,
-                            ),
+              if (_searchQuery.isNotEmpty && filteredContacts.isEmpty)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          CupertinoIcons.search,
+                          size: 64,
+                          color: CupertinoColors.systemGrey,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No contacts found',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: CupertinoColors.systemGrey,
                           ),
-                        );
-                      },
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Try a different search term',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: CupertinoColors.systemGrey2,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                )
+              else
+                SliverList.list(
+                  children: [
+                    const SizedBox(height: 20),
+                    ...filteredContacts.keys.map(
+                      (String initial) => _ContactListSection(
+                        lastInitial: initial,
+                        contacts: filteredContacts[initial]!,
+                        onContactSelected: (contact) {
+                          Navigator.of(context).push(
+                            CupertinoPageRoute(
+                              builder: (context) =>
+                                  ContactDetailPage(contact: contact),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
             ],
           );
         },
@@ -79,6 +152,43 @@ class ContactsContent extends StatefulWidget {
 }
 
 class _ContactsContentState extends State<ContactsContent> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  AlphabetizedContactMap _filterContacts(List<Contact> contacts) {
+    final query = _searchQuery.toLowerCase().trim();
+    if (query.isEmpty) {
+      return _alphabetizeContacts(contacts);
+    }
+
+    final filtered = contacts.where((contact) {
+      return contact.fullName.toLowerCase().contains(query) ||
+          (contact.phoneNumber?.contains(query) ?? false) ||
+          (contact.email?.toLowerCase().contains(query) ?? false);
+    }).toList();
+
+    return _alphabetizeContacts(filtered);
+  }
+
+  AlphabetizedContactMap _alphabetizeContacts(List<Contact> contacts) {
+    final Map<String, List<Contact>> grouped = {};
+    for (final contact in contacts) {
+      final key = contact.alphabeticalKey;
+      grouped.putIfAbsent(key, () => []);
+      grouped[key]!.add(contact);
+    }
+    final sortedKeys = grouped.keys.toList()..sort();
+    return Map.fromEntries(
+      sortedKeys.map((key) => MapEntry(key, grouped[key]!)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -87,11 +197,12 @@ class _ContactsContentState extends State<ContactsContent> {
         valueListenable: contactGroupsModel.listsNotifier,
         builder: (context, groups, _) {
           final contactList = contactGroupsModel.findContactList(widget.listId);
-          final alphabetized = contactList.alphabetizedContacts;
+          final allContacts = contactList.contacts;
+          final filteredContacts = _filterContacts(allContacts);
 
           return CustomScrollView(
             slivers: [
-              CupertinoSliverNavigationBar(
+              CupertinoSliverNavigationBar.search(
                 largeTitle: Text(contactList.title),
                 trailing: CupertinoButton(
                   padding: EdgeInsets.zero,
@@ -100,20 +211,60 @@ class _ContactsContentState extends State<ContactsContent> {
                     debugPrint('Add contact');
                   },
                 ),
+                searchField: CupertinoSearchTextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                ),
               ),
-              SliverList.list(
-                children: [
-                  const SizedBox(height: 12),
-                  for (final initial in alphabetized.keys) ...[
-                    _buildAlphabetSection(
-                      initial: initial,
-                      contacts: alphabetized[initial]!,
-                      onContactSelected: widget.onContactSelected,
+              if (_searchQuery.isNotEmpty && filteredContacts.isEmpty)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          CupertinoIcons.search,
+                          size: 64,
+                          color: CupertinoColors.systemGrey,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No contacts found',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: CupertinoColors.systemGrey,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Try a different search term',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: CupertinoColors.systemGrey2,
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                )
+              else
+                SliverList.list(
+                  children: [
+                    const SizedBox(height: 12),
+                    for (final initial in filteredContacts.keys) ...[
+                      _buildAlphabetSection(
+                        initial: initial,
+                        contacts: filteredContacts[initial]!,
+                        onContactSelected: widget.onContactSelected,
+                      ),
+                    ],
+                    const SizedBox(height: 24),
                   ],
-                  const SizedBox(height: 24),
-                ],
-              ),
+                ),
             ],
           );
         },

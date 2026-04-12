@@ -4,13 +4,31 @@ class Contact {
   final String lastName;
   final String? phoneNumber;
   final String? email;
+  final DateTime? deletedAt;
 
   Contact({
     required this.firstName,
     required this.lastName,
     this.phoneNumber,
     this.email,
+    this.deletedAt,
   });
+
+  Contact copyWith({
+    String? firstName,
+    String? lastName,
+    String? phoneNumber,
+    String? email,
+    DateTime? deletedAt,
+  }) {
+    return Contact(
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      email: email ?? this.email,
+      deletedAt: deletedAt ?? this.deletedAt,
+    );
+  }
 
   /// Get the full name of the contact
   String get fullName => '$firstName $lastName';

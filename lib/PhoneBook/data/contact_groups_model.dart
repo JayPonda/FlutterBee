@@ -3,16 +3,153 @@ import 'package:flutter/material.dart';
 import 'models/contact.dart';
 import 'models/contact_group.dart';
 
+/// Result of contact validation
+class ValidationResult {
+  final bool success;
+  final String? errorMessage;
+
+  ValidationResult({required this.success, this.errorMessage});
+}
+
 /// Global state management for contact groups
-/// This manages the list of contact groups and provides reactive updates via ValueNotifier
 class ContactGroupsModel {
   final listsNotifier = ValueNotifier<List<ContactGroup>>([]);
+  final _sessionDeletedContacts = <Contact>{};
 
   ContactGroupsModel() {
     _initializeDummyData();
   }
 
-  /// Initialize with dummy data
+  bool isDeleted(Contact contact) {
+    return _sessionDeletedContacts.contains(contact);
+  }
+
+  void deleteContact(Contact contact) {
+    for (final group in listsNotifier.value) {
+      if (group.contacts.contains(contact)) {
+        group.contacts.remove(contact);
+        final deletedContact = contact.copyWith(deletedAt: DateTime.now());
+        _sessionDeletedContacts.add(deletedContact);
+        _notifyListeners();
+        return;
+      }
+    }
+  }
+
+  void restoreContact(Contact contact) {
+    final iterator = _sessionDeletedContacts.iterator;
+    Contact? toRestore;
+    while (iterator.moveNext()) {
+      if (iterator.current.fullName == contact.fullName) {
+        toRestore = iterator.current;
+        break;
+      }
+    }
+    if (toRestore != null) {
+      _sessionDeletedContacts.remove(toRestore);
+      final restoredContact = toRestore.copyWith(deletedAt: null);
+      if (listsNotifier.value.isNotEmpty) {
+        listsNotifier.value.first.contacts.add(restoredContact);
+      }
+      _notifyListeners();
+    }
+  }
+
+  void permanentlyRemove(Contact contact) {
+    _sessionDeletedContacts.removeWhere((c) => c.fullName == contact.fullName);
+  }
+
+  void addContact(int groupId, Contact contact) {
+    final group = findContactList(groupId);
+    group.contacts.add(contact);
+    _notifyListeners();
+  }
+
+  void removeContact(int groupId, Contact contact) {
+    final group = findContactList(groupId);
+    group.contacts.remove(contact);
+    _notifyListeners();
+  }
+
+  void updateContact(int groupId, Contact oldContact, Contact newContact) {
+    final group = findContactList(groupId);
+    final index = group.contacts.indexOf(oldContact);
+    if (index != -1) {
+      group.contacts[index] = newContact;
+      _notifyListeners();
+    }
+  }
+
+  ContactGroup findContactList(int listId) {
+    return listsNotifier.value.firstWhere(
+      (group) => group.id == listId,
+      orElse: () => listsNotifier.value.first,
+    );
+  }
+
+  void removeContactByRef(Contact contact) {
+    for (final group in listsNotifier.value) {
+      if (group.contacts.contains(contact)) {
+        group.contacts.remove(contact);
+        _notifyListeners();
+        return;
+      }
+    }
+  }
+
+  ValidationResult updateContactWithValidation(
+    Contact oldContact,
+    Contact newContact,
+  ) {
+    for (final group in listsNotifier.value) {
+      for (final existing in group.contacts) {
+        if (existing == oldContact) continue;
+
+        if (existing.phoneNumber != null &&
+            newContact.phoneNumber != null &&
+            existing.phoneNumber == newContact.phoneNumber &&
+            existing.fullName.toLowerCase() !=
+                newContact.fullName.toLowerCase()) {
+          return ValidationResult(
+            success: false,
+            errorMessage:
+                'Phone number already belongs to ${existing.fullName}',
+          );
+        }
+
+        if (existing.phoneNumber != null &&
+            newContact.phoneNumber != null &&
+            existing.fullName.toLowerCase() ==
+                newContact.fullName.toLowerCase() &&
+            existing.phoneNumber != newContact.phoneNumber) {
+          return ValidationResult(
+            success: false,
+            errorMessage:
+                '${newContact.fullName} already exists with a different phone number',
+          );
+        }
+      }
+    }
+
+    for (final group in listsNotifier.value) {
+      final index = group.contacts.indexOf(oldContact);
+      if (index != -1) {
+        group.contacts[index] = newContact;
+        _notifyListeners();
+        return ValidationResult(success: true);
+      }
+    }
+    return ValidationResult(success: false, errorMessage: 'Contact not found');
+  }
+
+  void _notifyListeners() {
+    listsNotifier.value = [...listsNotifier.value];
+  }
+
+  void dispose() {
+    listsNotifier.dispose();
+  }
+
   void _initializeDummyData() {
     listsNotifier.value = [
       ContactGroup(
@@ -195,39 +332,6 @@ class ContactGroupsModel {
       ),
     ];
   }
-
-  /// Find a contact group by ID
-  ContactGroup findContactList(int listId) {
-    return listsNotifier.value.firstWhere(
-      (group) => group.id == listId,
-      orElse: () => listsNotifier.value.first,
-    );
-  }
-
-  /// Add a new contact to a group
-  void addContact(int groupId, Contact contact) {
-    final group = findContactList(groupId);
-    group.contacts.add(contact);
-    _notifyListeners();
-  }
-
-  /// Remove a contact from a group
-  void removeContact(int groupId, Contact contact) {
-    final group = findContactList(groupId);
-    group.contacts.remove(contact);
-    _notifyListeners();
-  }
-
-  /// Notify listeners of changes
-  void _notifyListeners() {
-    listsNotifier.value = [...listsNotifier.value];
-  }
-
-  /// Dispose resources
-  void dispose() {
-    listsNotifier.dispose();
-  }
 }
 
-/// Global instance of the contact groups model
 final contactGroupsModel = ContactGroupsModel();

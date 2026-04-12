@@ -305,7 +305,7 @@ class _NavSection extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 color: enabled
-                    ? CupertinoColors.white.withOpacity(0.9)
+                    ? CupertinoColors.white.withValues(alpha: 0.9)
                     : context.secondaryText,
               ),
             ),

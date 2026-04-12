@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
+import '../data/contact_groups_model.dart';
 import '../data/models/contact.dart';
 import '../theme/app_theme.dart';
 import 'adaptive_layout.dart';
@@ -21,6 +22,8 @@ class MasterDetailLayout extends StatelessWidget {
     required this.onContactSelected,
     required this.onGroupSelected,
     required this.onBackToContacts,
+    this.onContactUpdated,
+    this.onContactDeleted,
   });
 
   final NavigationSection selectedSection;
@@ -30,6 +33,8 @@ class MasterDetailLayout extends StatelessWidget {
   final ValueChanged<Contact> onContactSelected;
   final ValueChanged<int> onGroupSelected;
   final VoidCallback onBackToContacts;
+  final Function(Contact, Contact)? onContactUpdated;
+  final Function(Contact)? onContactDeleted;
 
   @override
   Widget build(BuildContext context) {
@@ -224,11 +229,55 @@ class MasterDetailLayout extends StatelessWidget {
 
   /// Right panel: Content Area
   Widget _buildContentArea(BuildContext context) {
-    // If a contact is selected, show the detail view
     if (selectedContact != null) {
       return ContactDetailContent(
         contact: selectedContact!,
         onBack: onBackToContacts,
+        onEdit: (oldContact) async {
+          final updated = await showEditContactDialog(context, oldContact);
+          if (updated != null && context.mounted) {
+            final result = contactGroupsModel.updateContactWithValidation(
+              oldContact,
+              updated,
+            );
+            if (result.success) {
+              onContactUpdated?.call(oldContact, updated);
+              if (context.mounted) {
+                _showToast(context, 'Contact updated successfully');
+              }
+            } else {
+              if (context.mounted) {
+                _showToast(context, result.errorMessage!);
+              }
+            }
+          }
+        },
+        onDelete: () async {
+          final confirmed = await showCupertinoDialog<bool>(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('Delete Contact'),
+              content: Text(
+                'Are you sure you want to delete ${selectedContact!.fullName}?',
+              ),
+              actions: [
+                CupertinoDialogAction(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                CupertinoDialogAction(
+                  isDestructiveAction: true,
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Delete'),
+                ),
+              ],
+            ),
+          );
+          if (confirmed == true && context.mounted) {
+            contactGroupsModel.deleteContact(selectedContact!);
+            onContactDeleted?.call(selectedContact!);
+          }
+        },
       );
     }
 
@@ -250,5 +299,18 @@ class MasterDetailLayout extends StatelessWidget {
       case NavigationSection.settings:
         return const SettingsContent();
     }
+  }
+
+  void _showToast(BuildContext context, String message) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        message: Text(message),
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('OK'),
+        ),
+      ),
+    );
   }
 }
