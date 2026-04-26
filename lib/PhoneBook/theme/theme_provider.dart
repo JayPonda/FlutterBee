@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart';
 
-/// Enum to represent theme mode options
+import '../stores/store.dart'
+    if (dart.library.html) '../stores/store_web.dart';
+
+const _themeModeKey = 'theme_mode';
+
 enum ThemeMode {
   light('Light'),
   dark('Dark'),
@@ -8,17 +12,28 @@ enum ThemeMode {
 
   final String label;
   const ThemeMode(this.label);
+
+  static ThemeMode fromString(String value) {
+    return ThemeMode.values.firstWhere(
+      (mode) => mode.name == value,
+      orElse: () => ThemeMode.system,
+    );
+  }
 }
 
-/// Provider for managing app theme state
-/// Allows toggling between light, dark, and system theme modes
 class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
 
-  /// Current theme mode
   ThemeMode get themeMode => _themeMode;
 
-  /// Check if dark mode is currently active (based on system or user preference)
+  Future<void> init() async {
+    final saved = await getStorageValue(_themeModeKey);
+    if (saved != null) {
+      _themeMode = ThemeMode.fromString(saved);
+    }
+    notifyListeners();
+  }
+
   bool isDarkMode(Brightness systemBrightness) {
     switch (_themeMode) {
       case ThemeMode.light:
@@ -30,22 +45,20 @@ class ThemeProvider extends ChangeNotifier {
     }
   }
 
-  /// Set the theme mode
-  void setThemeMode(ThemeMode mode) {
+  Future<void> setThemeMode(ThemeMode mode) async {
     if (_themeMode != mode) {
       _themeMode = mode;
+      await setStorageValue(_themeModeKey, mode.name);
       notifyListeners();
     }
   }
 
-  /// Toggle between light and dark modes
   void toggleTheme() {
     if (_themeMode == ThemeMode.light) {
       setThemeMode(ThemeMode.dark);
     } else if (_themeMode == ThemeMode.dark) {
       setThemeMode(ThemeMode.light);
     } else {
-      // If system, switch to light
       setThemeMode(ThemeMode.light);
     }
   }

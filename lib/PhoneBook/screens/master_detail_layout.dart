@@ -27,11 +27,11 @@ class MasterDetailLayout extends StatelessWidget {
   });
 
   final NavigationSection selectedSection;
-  final int selectedGroupId;
+  final String selectedGroupId;
   final Contact? selectedContact;
   final ValueChanged<NavigationSection> onSectionChanged;
   final ValueChanged<Contact> onContactSelected;
-  final ValueChanged<int> onGroupSelected;
+  final ValueChanged<String> onGroupSelected;
   final VoidCallback onBackToContacts;
   final Function(Contact, Contact)? onContactUpdated;
   final Function(Contact)? onContactDeleted;
@@ -39,7 +39,6 @@ class MasterDetailLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text('PhoneBook')),
       child: SafeArea(
         child: Row(
           children: [
@@ -227,25 +226,29 @@ class MasterDetailLayout extends StatelessWidget {
     );
   }
 
-  /// Right panel: Content Area
   Widget _buildContentArea(BuildContext context) {
     if (selectedContact != null) {
       return ContactDetailContent(
+        key: ValueKey('detail_${selectedContact!.id}'),
         contact: selectedContact!,
         onBack: onBackToContacts,
         onEdit: (oldContact) async {
           final updated = await showEditContactDialog(context, oldContact);
           if (updated != null && context.mounted) {
+            // 1. Perform validation and DB update FIRST
             final result = contactGroupsModel.updateContactWithValidation(
               oldContact,
               updated,
             );
+            
+            // 2. Only if the DB update was successful, notify the UI
             if (result.success) {
-              onContactUpdated?.call(oldContact, updated);
               if (context.mounted) {
+                onContactUpdated?.call(oldContact, updated);
                 _showToast(context, 'Contact updated successfully');
               }
             } else {
+              // 3. If it failed, the UI state is NOT updated, and we show the error
               if (context.mounted) {
                 _showToast(context, result.errorMessage!);
               }
@@ -274,30 +277,46 @@ class MasterDetailLayout extends StatelessWidget {
             ),
           );
           if (confirmed == true && context.mounted) {
-            contactGroupsModel.deleteContact(selectedContact!);
-            onContactDeleted?.call(selectedContact!);
+            // Unfocus to prevent focus/keyboard issues during transition on Web
+            FocusScope.of(context).unfocus();
+            
+            final contactToDelete = selectedContact!;
+            await contactGroupsModel.deleteContact(contactToDelete);
+            
+            if (context.mounted) {
+              // Wait for animations and DB stream to settle
+              await Future.delayed(const Duration(milliseconds: 150));
+              
+              if (context.mounted) {
+                onContactDeleted?.call(contactToDelete);
+              }
+            }
           }
         },
       );
     }
 
     // Otherwise, show content based on selected section
+    final sectionKey = ValueKey('section_${selectedSection.index}_$selectedGroupId');
+    
     switch (selectedSection) {
       case NavigationSection.allContacts:
         return ContactsContent(
+          key: sectionKey,
           listId: selectedGroupId,
           onContactSelected: onContactSelected,
         );
       case NavigationSection.groups:
         return GroupsContent(
+          key: sectionKey,
           onGroupSelected: (group) => onGroupSelected(group.id),
         );
       case NavigationSection.favorites:
-        return const FavoritesContent();
+        return FavoritesContent(key: sectionKey);
       case NavigationSection.recent:
-        return const RecentContent();
+        return RecentContent(key: sectionKey);
       case NavigationSection.settings:
-        return const SettingsContent();
+        return SettingsContent(key: sectionKey);
     }
   }
 

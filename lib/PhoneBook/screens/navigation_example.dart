@@ -34,16 +34,19 @@ class NavigationExamplePage extends StatelessWidget {
                 description:
                     'Navigate to a new screen and add it to the navigation stack.',
                 onTap: () {
-                  final firstContact = contactGroupsModel
+                  final contacts = contactGroupsModel
                       .listsNotifier
                       .value
                       .first
-                      .contacts
-                      .first;
+                      .contacts;
+                  if (contacts.isEmpty) {
+                    _showError(context, 'No contacts available');
+                    return;
+                  }
                   Navigator.of(context).push(
                     CupertinoPageRoute<void>(
                       builder: (context) =>
-                          ContactDetailPage(contact: firstContact),
+                          ContactDetailPage(contact: contacts.first),
                     ),
                   );
                 },
@@ -56,8 +59,12 @@ class NavigationExamplePage extends StatelessWidget {
                 description:
                     'Navigate using named routes with optional arguments.',
                 onTap: () {
-                  final firstContact =
-                      contactGroupsModel.listsNotifier.value.first.contacts[1];
+                  final contacts = contactGroupsModel.listsNotifier.value.first.contacts;
+                  if (contacts.length < 2) {
+                    _showError(context, 'At least 2 contacts needed');
+                    return;
+                  }
+                  final firstContact = contacts[1];
                   Navigator.pushNamed(
                     context,
                     '/contact-detail',
@@ -73,8 +80,12 @@ class NavigationExamplePage extends StatelessWidget {
                 description:
                     'Replace the current route with a new route (removes previous from stack).',
                 onTap: () {
-                  final firstContact =
-                      contactGroupsModel.listsNotifier.value.first.contacts[2];
+                  final contacts = contactGroupsModel.listsNotifier.value.first.contacts;
+                  if (contacts.length < 3) {
+                    _showError(context, 'At least 3 contacts needed');
+                    return;
+                  }
+                  final firstContact = contacts[2];
                   Navigator.of(context).pushReplacement(
                     CupertinoPageRoute<void>(
                       builder: (context) =>
@@ -120,8 +131,12 @@ class NavigationExamplePage extends StatelessWidget {
                 description:
                     'Navigate to a page and handle the result when returning.',
                 onTap: () async {
-                  final firstContact =
-                      contactGroupsModel.listsNotifier.value.first.contacts[3];
+                  final contacts = contactGroupsModel.listsNotifier.value.first.contacts;
+                  if (contacts.length < 4) {
+                    _showError(context, 'At least 4 contacts needed');
+                    return;
+                  }
+                  final firstContact = contacts[3];
                   final result = await Navigator.of(context).push<String>(
                     CupertinoPageRoute<String>(
                       builder: (context) =>
@@ -314,4 +329,20 @@ class _NavSection extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showError(BuildContext context, String message) {
+  showCupertinoDialog(
+    context: context,
+    builder: (context) => CupertinoAlertDialog(
+      title: const Text('Navigation Error'),
+      content: Text(message),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('OK'),
+        ),
+      ],
+    ),
+  );
 }

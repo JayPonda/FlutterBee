@@ -9,7 +9,7 @@ import 'pages/contact_detail_page.dart';
 class ContactListsPage extends StatelessWidget {
   const ContactListsPage({super.key, required this.listId});
 
-  final int listId;
+  final String listId;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +20,7 @@ class ContactListsPage extends StatelessWidget {
 class _ContactListView extends StatefulWidget {
   const _ContactListView({required this.listId});
 
-  final int listId;
+  final String listId;
 
   @override
   State<_ContactListView> createState() => _ContactListViewState();

@@ -47,6 +47,11 @@ class _RolodexAppState extends State<RolodexApp> {
     super.initState();
     _themeProvider = ThemeProvider();
     _themeProvider.addListener(_onThemeChanged);
+    _initializeTheme();
+  }
+
+  Future<void> _initializeTheme() async {
+    await _themeProvider.init();
   }
 
   @override

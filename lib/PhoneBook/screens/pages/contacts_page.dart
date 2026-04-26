@@ -10,7 +10,7 @@ import 'contact_detail_page.dart';
 class ContactsPage extends StatefulWidget {
   const ContactsPage({super.key, required this.listId});
 
-  final int listId;
+  final String listId;
 
   @override
   State<ContactsPage> createState() => _ContactsPageState();
@@ -27,12 +27,15 @@ class _ContactsPageState extends State<ContactsPage> {
   }
 
   AlphabetizedContactMap _filterContacts(List<Contact> contacts) {
+    // Only show non-deleted contacts
+    final activeContacts = contacts.where((c) => c.deletedAt == null).toList();
+    
     final query = _searchQuery.toLowerCase().trim();
     if (query.isEmpty) {
-      return _alphabetizeContacts(contacts);
+      return _alphabetizeContacts(activeContacts);
     }
 
-    final filtered = contacts.where((contact) {
+    final filtered = activeContacts.where((contact) {
       return contact.fullName.toLowerCase().contains(query) ||
           (contact.phoneNumber?.contains(query) ?? false) ||
           (contact.email?.toLowerCase().contains(query) ?? false);
@@ -70,6 +73,22 @@ class _ContactsPageState extends State<ContactsPage> {
             slivers: [
               CupertinoSliverNavigationBar.search(
                 largeTitle: Text(contactList.title),
+                trailing: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Icon(CupertinoIcons.add),
+                  onPressed: () async {
+                    final newContact = await showCreateContactDialog(context);
+                    if (newContact != null && context.mounted) {
+                      // Safety for Web: unfocus and small delay before DB update
+                      FocusScope.of(context).unfocus();
+                      await Future.delayed(const Duration(milliseconds: 100));
+                      
+                      if (context.mounted) {
+                        await contactGroupsModel.addContact(widget.listId, newContact);
+                      }
+                    }
+                  },
+                ),
                 searchField: CupertinoSearchTextField(
                   controller: _searchController,
                   suffixIcon: const Icon(CupertinoIcons.mic_fill),
@@ -123,8 +142,18 @@ class _ContactsPageState extends State<ContactsPage> {
                         onContactSelected: (contact) {
                           Navigator.of(context).push(
                             CupertinoPageRoute(
-                              builder: (context) =>
-                                  ContactDetailPage(contact: contact),
+                              builder: (context) => ContactDetailPage(
+                                contact: contact,
+                                onContactDeleted: (deletedContact) {
+                                  // Go back to the list on mobile after deletion
+                                  if (Navigator.of(context).canPop()) {
+                                    Navigator.of(context).pop();
+                                  }
+                                },
+                                onContactUpdated: (oldC, newC) {
+                                  // The model update is already handled by ContactDetailPage
+                                },
+                              ),
                             ),
                           );
                         },
@@ -142,9 +171,9 @@ class _ContactsPageState extends State<ContactsPage> {
 
 /// Reusable Contacts content for master-detail layout
 class ContactsContent extends StatefulWidget {
-  const ContactsContent({super.key, this.listId = 0, this.onContactSelected});
+  const ContactsContent({super.key, this.listId = '0', this.onContactSelected});
 
-  final int listId;
+  final String listId;
   final Function(Contact)? onContactSelected;
 
   @override
@@ -162,12 +191,15 @@ class _ContactsContentState extends State<ContactsContent> {
   }
 
   AlphabetizedContactMap _filterContacts(List<Contact> contacts) {
+    // Only show non-deleted contacts
+    final activeContacts = contacts.where((c) => c.deletedAt == null).toList();
+    
     final query = _searchQuery.toLowerCase().trim();
     if (query.isEmpty) {
-      return _alphabetizeContacts(contacts);
+      return _alphabetizeContacts(activeContacts);
     }
 
-    final filtered = contacts.where((contact) {
+    final filtered = activeContacts.where((contact) {
       return contact.fullName.toLowerCase().contains(query) ||
           (contact.phoneNumber?.contains(query) ?? false) ||
           (contact.email?.toLowerCase().contains(query) ?? false);
@@ -207,8 +239,17 @@ class _ContactsContentState extends State<ContactsContent> {
                 trailing: CupertinoButton(
                   padding: EdgeInsets.zero,
                   child: const Icon(CupertinoIcons.add),
-                  onPressed: () {
-                    debugPrint('Add contact');
+                  onPressed: () async {
+                    final newContact = await showCreateContactDialog(context);
+                    if (newContact != null && context.mounted) {
+                      // Safety for Web: unfocus and small delay before DB update
+                      FocusScope.of(context).unfocus();
+                      await Future.delayed(const Duration(milliseconds: 100));
+                      
+                      if (context.mounted) {
+                        await contactGroupsModel.addContact(widget.listId, newContact);
+                      }
+                    }
                   },
                 ),
                 searchField: CupertinoSearchTextField(
@@ -343,13 +384,13 @@ class _ContactListSection extends StatelessWidget {
             ),
           ),
         ),
-        for (int i = 0; i < contacts.length; i++) ...[
+        for (final (index, contact) in contacts.indexed) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: i < contacts.length - 1
+                  bottom: index < contacts.length - 1
                       ? BorderSide(color: context.dividerColor, width: 0.5)
                       : BorderSide.none,
                 ),
@@ -357,8 +398,8 @@ class _ContactListSection extends StatelessWidget {
               child: CupertinoButton(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 onPressed: () {
-                  debugPrint('Tapped ${contacts[i].fullName}');
-                  onContactSelected?.call(contacts[i]);
+                  debugPrint('Tapped ${contact.fullName}');
+                  onContactSelected?.call(contact);
                 },
                 child: Row(
                   children: [
@@ -367,12 +408,12 @@ class _ContactListSection extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            contacts[i].fullName,
+                            contact.fullName,
                             style: TextStyle(color: context.primaryText),
                           ),
-                          if (contacts[i].phoneNumber != null)
+                          if (contact.phoneNumber != null)
                             Text(
-                              contacts[i].phoneNumber!,
+                              contact.phoneNumber!,
                               style: TextStyle(
                                 color: context.secondaryText,
                                 fontSize: 12,
@@ -421,13 +462,13 @@ class ContactListSection extends StatelessWidget {
             ),
           ),
         ),
-        for (int i = 0; i < contacts.length; i++) ...[
+        for (final (index, contact) in contacts.indexed) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: i < contacts.length - 1
+                  bottom: index < contacts.length - 1
                       ? BorderSide(color: context.dividerColor, width: 0.5)
                       : BorderSide.none,
                 ),
@@ -435,8 +476,8 @@ class ContactListSection extends StatelessWidget {
               child: CupertinoButton(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 onPressed: () {
-                  debugPrint('Tapped ${contacts[i].fullName}');
-                  onContactSelected?.call(contacts[i]);
+                  debugPrint('Tapped ${contact.fullName}');
+                  onContactSelected?.call(contact);
                 },
                 child: Row(
                   children: [
@@ -445,12 +486,12 @@ class ContactListSection extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            contacts[i].fullName,
+                            contact.fullName,
                             style: TextStyle(color: context.primaryText),
                           ),
-                          if (contacts[i].phoneNumber != null)
+                          if (contact.phoneNumber != null)
                             Text(
-                              contacts[i].phoneNumber!,
+                              contact.phoneNumber!,
                               style: TextStyle(
                                 color: context.secondaryText,
                                 fontSize: 12,

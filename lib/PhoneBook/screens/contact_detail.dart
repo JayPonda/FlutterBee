@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
 
 import '../data/contact_groups_model.dart';
 import '../data/models/contact.dart';
@@ -326,6 +327,7 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                 return;
               }
               final newContact = Contact(
+                id: const Uuid().v4(),
                 firstName: firstNameController.text.trim(),
                 lastName: lastNameController.text.trim(),
                 phoneNumber: phoneController.text.trim().isEmpty

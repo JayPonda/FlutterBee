@@ -17,7 +17,7 @@ class MobileDeviceLayout extends StatelessWidget {
 
   final NavigationSection selectedSection;
   final ValueChanged<int> onSectionTap;
-  final int selectedGroupId;
+  final String selectedGroupId;
 
   @override
   Widget build(BuildContext context) {

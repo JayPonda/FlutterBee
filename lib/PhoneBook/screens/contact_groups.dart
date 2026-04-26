@@ -11,7 +11,7 @@ class ContactGroupsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _ContactGroupsView(
-      selectedListId: 0,
+      selectedListId: '0',
       onListSelected: (list) {
         debugPrint(list.toString());
       },
@@ -23,7 +23,7 @@ class ContactGroupsPage extends StatelessWidget {
 class _ContactGroupsView extends StatelessWidget {
   const _ContactGroupsView({required this.onListSelected, this.selectedListId});
 
-  final int? selectedListId;
+  final String? selectedListId;
   final Function(ContactGroup) onListSelected;
 
   @override
@@ -55,7 +55,7 @@ class _ContactGroupsView extends StatelessWidget {
                   children: [
                     for (final ContactGroup contactList in contactLists)
                       CupertinoListTile(
-                        leading: contactList.id == 0 ? groupIcon : pairIcon,
+                        leading: contactList.id == '0' ? groupIcon : pairIcon,
                         title: Text(contactList.label),
                         trailing: _buildTrailing(contactList.contacts, context),
                         onTap: () => onListSelected(contactList),

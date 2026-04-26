@@ -31,14 +31,14 @@ class AdaptiveLayout extends StatefulWidget {
 
 class _AdaptiveLayoutState extends State<AdaptiveLayout> {
   NavigationSection _selectedSection = NavigationSection.allContacts;
-  int _selectedGroupId = 0;
+  String _selectedGroupId = '0';
   Contact? _selectedContact;
 
   void _handleSectionChanged(NavigationSection section) {
     setState(() {
       _selectedSection = section;
       _selectedContact = null;
-      _selectedGroupId = 0;
+      _selectedGroupId = '0';
     });
   }
 
@@ -48,7 +48,7 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
     });
   }
 
-  void _handleGroupSelected(int groupId) {
+  void _handleGroupSelected(String groupId) {
     setState(() {
       _selectedSection = NavigationSection.allContacts;
       _selectedGroupId = groupId;
@@ -59,6 +59,22 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
   void _handleBackToContacts() {
     setState(() {
       _selectedContact = null;
+    });
+  }
+
+  void _handleContactUpdated(Contact oldContact, Contact newContact) {
+    setState(() {
+      if (_selectedContact?.id == oldContact.id) {
+        _selectedContact = newContact;
+      }
+    });
+  }
+
+  void _handleContactDeleted(Contact contact) {
+    setState(() {
+      if (_selectedContact?.id == contact.id) {
+        _selectedContact = null;
+      }
     });
   }
 
@@ -75,6 +91,8 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
             onContactSelected: _handleContactSelected,
             onGroupSelected: _handleGroupSelected,
             onBackToContacts: _handleBackToContacts,
+            onContactUpdated: _handleContactUpdated,
+            onContactDeleted: _handleContactDeleted,
           );
         }
 

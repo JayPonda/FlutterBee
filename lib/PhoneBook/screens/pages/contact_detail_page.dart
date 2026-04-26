@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../data/contact_groups_model.dart';
 import '../../data/models/contact.dart';
@@ -29,6 +30,7 @@ Future<Contact?> showEditContactDialog(
               placeholder: 'First Name',
               padding: const EdgeInsets.all(12),
               textCapitalization: TextCapitalization.words,
+              maxLength: 30,
             ),
             const SizedBox(height: 8),
             CupertinoTextField(
@@ -36,6 +38,7 @@ Future<Contact?> showEditContactDialog(
               placeholder: 'Last Name',
               padding: const EdgeInsets.all(12),
               textCapitalization: TextCapitalization.words,
+              maxLength: 30,
             ),
             const SizedBox(height: 8),
             CupertinoTextField(
@@ -43,6 +46,7 @@ Future<Contact?> showEditContactDialog(
               placeholder: 'Phone Number',
               keyboardType: TextInputType.phone,
               padding: const EdgeInsets.all(12),
+              maxLength: 10,
             ),
             const SizedBox(height: 8),
             CupertinoTextField(
@@ -50,6 +54,7 @@ Future<Contact?> showEditContactDialog(
               placeholder: 'Email',
               keyboardType: TextInputType.emailAddress,
               padding: const EdgeInsets.all(12),
+              maxLength: 250,
             ),
           ],
         ),
@@ -62,20 +67,133 @@ Future<Contact?> showEditContactDialog(
         CupertinoDialogAction(
           isDefaultAction: true,
           onPressed: () {
-            if (firstNameController.text.trim().isEmpty ||
-                lastNameController.text.trim().isEmpty) {
+            final firstName = firstNameController.text.trim();
+            final lastName = lastNameController.text.trim();
+            final phone = phoneController.text.trim();
+            final email = emailController.text.trim();
+
+            if (firstName.isEmpty && lastName.isEmpty) {
+              _showValidationError(context, 'Please enter a name');
               return;
             }
-            final newContact = Contact(
-              firstName: firstNameController.text.trim(),
-              lastName: lastNameController.text.trim(),
-              phoneNumber: phoneController.text.trim().isEmpty
-                  ? null
-                  : phoneController.text.trim(),
-              email: emailController.text.trim().isEmpty
-                  ? null
-                  : emailController.text.trim(),
+
+            final tempContact = Contact(
+              id: contact.id,
+              firstName: firstName,
+              lastName: lastName,
+              phoneNumber: phone.isEmpty ? null : phone,
+              email: email.isEmpty ? null : email,
             );
+
+            final validation = contactGroupsModel.validateContact(
+              tempContact,
+              excludeId: contact.id,
+            );
+
+            if (!validation.success) {
+              _showValidationError(context, validation.errorMessage!);
+              return;
+            }
+
+            FocusScope.of(context).unfocus();
+            Navigator.pop(context, tempContact);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    ),
+  );
+
+  firstNameController.dispose();
+  lastNameController.dispose();
+  phoneController.dispose();
+  emailController.dispose();
+
+  return result;
+}
+
+Future<Contact?> showCreateContactDialog(BuildContext context) async {
+  final firstNameController = TextEditingController();
+  final lastNameController = TextEditingController();
+  final phoneController = TextEditingController();
+  final emailController = TextEditingController();
+
+  final result = await showCupertinoDialog<Contact>(
+    context: context,
+    builder: (context) => CupertinoAlertDialog(
+      title: const Text('New Contact'),
+      content: Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Column(
+          children: [
+            CupertinoTextField(
+              controller: firstNameController,
+              placeholder: 'First Name',
+              padding: const EdgeInsets.all(12),
+              textCapitalization: TextCapitalization.words,
+              maxLength: 30,
+            ),
+            const SizedBox(height: 8),
+            CupertinoTextField(
+              controller: lastNameController,
+              placeholder: 'Last Name',
+              padding: const EdgeInsets.all(12),
+              textCapitalization: TextCapitalization.words,
+              maxLength: 30,
+            ),
+            const SizedBox(height: 8),
+            CupertinoTextField(
+              controller: phoneController,
+              placeholder: 'Phone Number',
+              keyboardType: TextInputType.phone,
+              padding: const EdgeInsets.all(12),
+              maxLength: 10,
+            ),
+            const SizedBox(height: 8),
+            CupertinoTextField(
+              controller: emailController,
+              placeholder: 'Email',
+              keyboardType: TextInputType.emailAddress,
+              padding: const EdgeInsets.all(12),
+              maxLength: 250,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        CupertinoDialogAction(
+          isDefaultAction: true,
+          onPressed: () {
+            final firstName = firstNameController.text.trim();
+            final lastName = lastNameController.text.trim();
+            final phone = phoneController.text.trim();
+            final email = emailController.text.trim();
+
+            if (firstName.isEmpty && lastName.isEmpty) {
+              _showValidationError(context, 'Please enter a name');
+              return;
+            }
+
+            final newContact = Contact(
+              id: const Uuid().v4(),
+              firstName: firstName,
+              lastName: lastName,
+              phoneNumber: phone.isEmpty ? null : phone,
+              email: email.isEmpty ? null : email,
+            );
+
+            final validation = contactGroupsModel.validateContact(newContact);
+
+            if (!validation.success) {
+              _showValidationError(context, validation.errorMessage!);
+              return;
+            }
+
+            FocusScope.of(context).unfocus();
             Navigator.pop(context, newContact);
           },
           child: const Text('Save'),
@@ -165,11 +283,22 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
     );
 
     if (confirmed == true && mounted) {
-      contactGroupsModel.deleteContact(_currentContact);
-      widget.onContactDeleted?.call(_currentContact);
-      setState(() {
-        _isDeleted = true;
-      });
+      FocusScope.of(context).unfocus();
+      final contactToDelete = _currentContact;
+      await contactGroupsModel.deleteContact(contactToDelete);
+      
+      if (mounted) {
+        widget.onContactDeleted?.call(contactToDelete);
+        
+        // Wait a frame before updating local state to avoid disposal errors on Web
+        await Future.delayed(const Duration(milliseconds: 50));
+        
+        if (mounted) {
+          setState(() {
+            _isDeleted = true;
+          });
+        }
+      }
     }
   }
 
@@ -214,7 +343,7 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                       ),
                       child: Center(
                         child: Text(
-                          '${_currentContact.firstName[0]}${_currentContact.lastName[0]}',
+                          '${_currentContact.firstName.isNotEmpty ? _currentContact.firstName[0].toUpperCase() : ''}${_currentContact.lastName.isNotEmpty ? _currentContact.lastName[0].toUpperCase() : ''}',
                           style: const TextStyle(
                             color: CupertinoColors.white,
                             fontSize: 32,
@@ -329,15 +458,17 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                                   updated,
                                 );
                             if (result.success) {
+                              // Only update the UI state if the DB/Validation succeeded
+                              setState(() {
+                                _currentContact = updated;
+                              });
                               widget.onContactUpdated?.call(
                                 _currentContact,
                                 updated,
                               );
-                              setState(() {
-                                _currentContact = updated;
-                              });
                               _showToast('Contact updated successfully');
                             } else {
+                              // Keep old data and show error
                               _showToast(result.errorMessage!);
                             }
                           }
@@ -504,7 +635,7 @@ class _ContactDetailContent extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      '${contact.firstName[0]}${contact.lastName[0]}',
+                      '${contact.firstName.isNotEmpty ? contact.firstName[0].toUpperCase() : ''}${contact.lastName.isNotEmpty ? contact.lastName[0].toUpperCase() : ''}',
                       style: const TextStyle(
                         color: CupertinoColors.white,
                         fontSize: 32,
@@ -664,4 +795,20 @@ class _ContactDetailContent extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showValidationError(BuildContext context, String message) {
+  showCupertinoDialog(
+    context: context,
+    builder: (context) => CupertinoAlertDialog(
+      title: const Text('Validation Error'),
+      content: Text(message),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('OK'),
+        ),
+      ],
+    ),
+  );
 }

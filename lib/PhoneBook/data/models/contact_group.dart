@@ -6,7 +6,7 @@ typedef AlphabetizedContactMap = Map<String, List<Contact>>;
 
 /// Represents a group/list of contacts
 class ContactGroup {
-  final int id;
+  final String id;
   final String label;
   final String title;
   final List<Contact> contacts;

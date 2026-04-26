@@ -12,7 +12,7 @@ class GroupsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _GroupsView(
-      selectedListId: 0,
+      selectedListId: '0',
       onListSelected: (list) {
         Navigator.of(context).push(
           CupertinoPageRoute(
@@ -27,7 +27,7 @@ class GroupsPage extends StatelessWidget {
 class _GroupsView extends StatelessWidget {
   const _GroupsView({required this.onListSelected, this.selectedListId});
 
-  final int? selectedListId;
+  final String? selectedListId;
   final Function(ContactGroup) onListSelected;
 
   @override
@@ -47,7 +47,7 @@ class _GroupsView extends StatelessWidget {
                     for (final ContactGroup contactList in contactLists)
                       CupertinoListTile(
                         leading: Icon(
-                          contactList.id == 0
+                          contactList.id == '0'
                               ? CupertinoIcons.group
                               : CupertinoIcons.person_2,
                           weight: 900,
@@ -114,7 +114,7 @@ class GroupsContent extends StatelessWidget {
                     for (final group in groups)
                       CupertinoListTile(
                         leading: Icon(
-                          group.id == 0
+                          group.id == '0'
                               ? CupertinoIcons.group
                               : CupertinoIcons.person_2,
                           weight: 900,

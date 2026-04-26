@@ -1,5 +1,6 @@
 /// Represents a single contact in the phone book
 class Contact {
+  final String id;
   final String firstName;
   final String lastName;
   final String? phoneNumber;
@@ -7,6 +8,7 @@ class Contact {
   final DateTime? deletedAt;
 
   Contact({
+    required this.id,
     required this.firstName,
     required this.lastName,
     this.phoneNumber,
@@ -15,6 +17,7 @@ class Contact {
   });
 
   Contact copyWith({
+    String? id,
     String? firstName,
     String? lastName,
     String? phoneNumber,
@@ -22,6 +25,7 @@ class Contact {
     DateTime? deletedAt,
   }) {
     return Contact(
+      id: id ?? this.id,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
