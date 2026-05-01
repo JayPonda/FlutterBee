@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'package:basics/domain/models/contact.dart';
 import 'package:basics/ui/core/theme/app_theme.dart';
+import 'package:basics/ui/core/utils/url_helper.dart';
 import 'package:basics/ui/features/phone_book/view_models/contact_view_model.dart';
 
 class ContactDetailPage extends StatefulWidget {
@@ -71,19 +72,23 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
     );
 
     if (confirmed == true && mounted) {
-      context.read<ContactViewModel>().deleteContact(_currentContact);
-      setState(() {
-        _isDeleted = true;
-      });
+      await context.read<ContactViewModel>().deleteContact(_currentContact);
+      if (mounted) {
+        setState(() {
+          _isDeleted = true;
+        });
+      }
     }
   }
 
-  void _handleRestore() {
-    context.read<ContactViewModel>().restoreContact(_currentContact);
-    setState(() {
-      _isDeleted = false;
-    });
-    _showToast('Contact restored');
+  Future<void> _handleRestore() async {
+    await context.read<ContactViewModel>().restoreContact(_currentContact);
+    if (mounted) {
+      setState(() {
+        _isDeleted = false;
+      });
+      _showToast('Contact restored');
+    }
   }
 
   @override
@@ -139,6 +144,25 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                         color: context.primaryText,
                       ),
                     ),
+                    if (_currentContact.phoneNumber != null &&
+                        _currentContact.phoneNumber!.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      CupertinoButton(
+                        color: CupertinoColors.systemGreen,
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        borderRadius: BorderRadius.circular(24),
+                        onPressed: () =>
+                            UrlHelper.makeCall(_currentContact.phoneNumber!),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(CupertinoIcons.phone_fill, size: 20),
+                            SizedBox(width: 8),
+                            Text('Call'),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (_isDeleted) ...[
                       const SizedBox(height: 8),
                       Container(
@@ -180,7 +204,8 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                   icon: CupertinoIcons.phone_fill,
                   label: 'Phone',
                   value: _currentContact.phoneNumber!,
-                  onTap: () {
+                  onTap: () => UrlHelper.makeCall(_currentContact.phoneNumber!),
+                  onLongPress: () {
                     Clipboard.setData(
                       ClipboardData(text: _currentContact.phoneNumber!),
                     );
@@ -223,14 +248,18 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                       child: CupertinoButton(
                         color: CupertinoColors.systemBlue,
                         onPressed: () async {
-                          final updated = await _showEditDialog(
+                          final resultData = await _showEditDialog(
                             _currentContact,
                           );
-                          if (updated != null && mounted) {
-                            final result = context.read<ContactViewModel>()
+                          if (resultData != null && mounted) {
+                            final updated = resultData['contact'] as Contact;
+                            final newGroupId = resultData['groupId'] as String;
+                            
+                            final result = await context.read<ContactViewModel>()
                                 .updateContactWithValidation(
                                   _currentContact,
                                   updated,
+                                  newGroupId: newGroupId,
                                 );
                             if (result.success) {
                               setState(() {
@@ -269,81 +298,126 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
     );
   }
 
-  Future<Contact?> _showEditDialog(Contact contact) async {
+  Future<Map<String, dynamic>?> _showEditDialog(Contact contact) async {
+    final viewModel = context.read<ContactViewModel>();
+    final groups = viewModel.listsNotifier.value;
+    
+    // Find current group ID
+    String? currentGroupId;
+    for (final group in groups) {
+      if (group.contacts.any((c) => c.id == contact.id)) {
+        currentGroupId = group.id;
+        break;
+      }
+    }
+    
+    // Default to first group if not found
+    currentGroupId ??= groups.isNotEmpty ? groups.first.id : null;
+
     final firstNameController = TextEditingController(text: contact.firstName);
     final lastNameController = TextEditingController(text: contact.lastName);
     final phoneController = TextEditingController(
       text: contact.phoneNumber ?? '',
     );
     final emailController = TextEditingController(text: contact.email ?? '');
+    String selectedGroupId = currentGroupId ?? '';
 
-    final result = await showCupertinoDialog<Contact>(
+    final result = await showCupertinoDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Edit Contact'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 16),
-          child: Column(
-            children: [
-              CupertinoTextField(
-                controller: firstNameController,
-                placeholder: 'First Name',
-                padding: const EdgeInsets.all(12),
-                textCapitalization: TextCapitalization.words,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return CupertinoAlertDialog(
+              title: const Text('Edit Contact'),
+              content: Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CupertinoTextField(
+                        controller: firstNameController,
+                        placeholder: 'First Name *',
+                        padding: const EdgeInsets.all(12),
+                        textCapitalization: TextCapitalization.words,
+                      ),
+                      const SizedBox(height: 8),
+                      CupertinoTextField(
+                        controller: lastNameController,
+                        placeholder: 'Last Name *',
+                        padding: const EdgeInsets.all(12),
+                        textCapitalization: TextCapitalization.words,
+                      ),
+                      const SizedBox(height: 8),
+                      CupertinoTextField(
+                        controller: phoneController,
+                        placeholder: 'Phone Number *',
+                        keyboardType: TextInputType.phone,
+                        padding: const EdgeInsets.all(12),
+                      ),
+                      const SizedBox(height: 8),
+                      CupertinoTextField(
+                        controller: emailController,
+                        placeholder: 'Email',
+                        keyboardType: TextInputType.emailAddress,
+                        padding: const EdgeInsets.all(12),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Select Group',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 100,
+                        child: CupertinoPicker(
+                          itemExtent: 32,
+                          scrollController: FixedExtentScrollController(
+                            initialItem: groups.indexWhere((g) => g.id == selectedGroupId),
+                          ),
+                          onSelectedItemChanged: (index) {
+                            selectedGroupId = groups[index].id;
+                          },
+                          children: groups.map((g) => Text(g.title)).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: lastNameController,
-                placeholder: 'Last Name',
-                padding: const EdgeInsets.all(12),
-                textCapitalization: TextCapitalization.words,
-              ),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: phoneController,
-                placeholder: 'Phone Number',
-                keyboardType: TextInputType.phone,
-                padding: const EdgeInsets.all(12),
-              ),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: emailController,
-                placeholder: 'Email',
-                keyboardType: TextInputType.emailAddress,
-                padding: const EdgeInsets.all(12),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () {
-              if (firstNameController.text.trim().isEmpty ||
-                  lastNameController.text.trim().isEmpty) {
-                return;
-              }
-              final newContact = Contact(
-                id: const Uuid().v4(),
-                firstName: firstNameController.text.trim(),
-                lastName: lastNameController.text.trim(),
-                phoneNumber: phoneController.text.trim().isEmpty
-                    ? null
-                    : phoneController.text.trim(),
-                email: emailController.text.trim().isEmpty
-                    ? null
-                    : emailController.text.trim(),
-              );
-              Navigator.pop(context, newContact);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+              actions: [
+                CupertinoDialogAction(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  onPressed: () {
+                    if (firstNameController.text.trim().isEmpty ||
+                        lastNameController.text.trim().isEmpty ||
+                        phoneController.text.trim().isEmpty) {
+                      return;
+                    }
+                    final newContact = contact.copyWith(
+                      firstName: firstNameController.text.trim(),
+                      lastName: lastNameController.text.trim(),
+                      phoneNumber: phoneController.text.trim(),
+                      email: emailController.text.trim().isEmpty
+                          ? null
+                          : emailController.text.trim(),
+                    );
+                    Navigator.pop(context, {
+                      'contact': newContact,
+                      'groupId': selectedGroupId,
+                    });
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
 
     firstNameController.dispose();
@@ -361,17 +435,20 @@ class _ContactInfoTile extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onTap,
+    this.onLongPress,
   });
 
   final IconData icon;
   final String label;
   final String value;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
@@ -408,7 +485,7 @@ class _ContactInfoTile extends StatelessWidget {
               ),
             ),
             const Icon(
-              CupertinoIcons.doc_on_clipboard,
+              CupertinoIcons.chevron_right,
               color: CupertinoColors.systemGrey,
               size: 20,
             ),

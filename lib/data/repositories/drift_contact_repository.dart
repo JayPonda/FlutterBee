@@ -10,38 +10,43 @@ class DriftContactRepository implements IContactRepository {
   DriftContactRepository(this._db);
 
   @override
-  Stream<List<ContactGroup>> watchContactGroups() {
-    // We want to trigger a refresh whenever any of these tables change.
-    // By joining all three tables in the watched query, Drift will notify
-    // us if any of them are modified.
-    final triggerQuery = _db.select(_db.groups).join([
-      leftOuterJoin(
-        _db.contactToGroup,
-        _db.contactToGroup.groupId.equalsExp(_db.groups.id),
-      ),
-      leftOuterJoin(
-        _db.contacts,
-        _db.contacts.id.equalsExp(_db.contactToGroup.contactId),
-      ),
-    ]);
+  Stream<List<ContactGroup>> watchContactGroups() async* {
+    // Emit initial data
+    yield await _fetchContactGroupsInternal();
 
-    return triggerQuery.watch().asyncMap((_) async {
+    // Then emit whenever tables change
+    await for (final _ in _db.tableUpdates()) {
+      yield await _fetchContactGroupsInternal();
+    }
+  }
+
+  Future<List<ContactGroup>> _fetchContactGroupsInternal() async {
+    try {
       final groups = await _db.select(_db.groups).get();
       final List<ContactGroup> contactGroups = [];
 
       for (final group in groups) {
-        final contactsInGroup = await (_db.select(_db.contacts).join([
-          innerJoin(
-            _db.contactToGroup,
-            _db.contactToGroup.contactId.equalsExp(_db.contacts.id),
-          ),
-        ])..where(_db.contactToGroup.groupId.equals(group.id)))
-            .get();
+        final List<Contact> contacts;
 
-        final contacts = contactsInGroup.map((row) {
-          final entry = row.readTable(_db.contacts);
-          return _mapContactEntryToDomain(entry);
-        }).toList();
+        if (group.id == '0') {
+          // Special case for "All Contacts" group: fetch every contact in the database
+          final allEntries = await _db.select(_db.contacts).get();
+          contacts = allEntries.map(_mapContactEntryToDomain).toList();
+        } else {
+          // Fetch contacts specifically associated with this group
+          final contactsInGroup = await (_db.select(_db.contacts).join([
+            innerJoin(
+              _db.contactToGroup,
+              _db.contactToGroup.contactId.equalsExp(_db.contacts.id),
+            ),
+          ])..where(_db.contactToGroup.groupId.equals(group.id)))
+              .get();
+
+          contacts = contactsInGroup.map((row) {
+            final entry = row.readTable(_db.contacts);
+            return _mapContactEntryToDomain(entry);
+          }).toList();
+        }
 
         contactGroups.add(ContactGroup(
           id: group.id,
@@ -51,7 +56,11 @@ class DriftContactRepository implements IContactRepository {
         ));
       }
       return contactGroups;
-    });
+    } catch (e, stack) {
+      print('Error in _fetchContactGroupsInternal: $e');
+      print(stack);
+      rethrow;
+    }
   }
 
   @override
@@ -90,6 +99,26 @@ class DriftContactRepository implements IContactRepository {
       email: Value(contact.email),
       deletedAt: Value(contact.deletedAt),
     ));
+  }
+
+  @override
+  Future<void> updateContactGroups(String contactId, List<String> groupIds) async {
+    await _db.transaction(() async {
+      // Clear existing associations
+      await (_db.delete(_db.contactToGroup)
+            ..where((t) => t.contactId.equals(contactId)))
+          .go();
+      
+      // Add new associations
+      for (final groupId in groupIds) {
+        await _db.into(_db.contactToGroup).insert(
+          ContactToGroupCompanion.insert(
+            contactId: contactId,
+            groupId: groupId,
+          ),
+        );
+      }
+    });
   }
 
   @override

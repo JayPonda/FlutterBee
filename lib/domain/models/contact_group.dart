@@ -18,12 +18,20 @@ class ContactGroup {
     required this.contacts,
   });
 
-  /// Returns contacts organized alphabetically by last name
+  /// Returns only active (non-deleted) contacts
+  List<Contact> get activeContacts =>
+      contacts.where((c) => c.deletedAt == null).toList();
+
+  /// Returns contacts organized alphabetically by first name
   AlphabetizedContactMap get alphabetizedContacts {
     final Map<String, List<Contact>> grouped = {};
 
-    // Sort contacts by last name
-    final sorted = [...contacts]..sort((a, b) => a.lastName.compareTo(b.lastName));
+    // Sort contacts by first name then last name
+    final sorted = [...contacts]..sort((a, b) {
+        int res = a.firstName.compareTo(b.firstName);
+        if (res == 0) res = a.lastName.compareTo(b.lastName);
+        return res;
+    });
 
     for (final contact in sorted) {
       final key = contact.alphabeticalKey;

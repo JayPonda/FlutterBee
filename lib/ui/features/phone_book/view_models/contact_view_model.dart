@@ -26,10 +26,15 @@ class ContactViewModel extends ChangeNotifier {
   }
 
   void _listenToRepository() {
-    _subscription = _repository.watchContactGroups().listen((groups) {
-      listsNotifier.value = groups;
-      notifyListeners();
-    });
+    _subscription = _repository.watchContactGroups().listen(
+      (groups) {
+        listsNotifier.value = groups;
+        notifyListeners();
+      },
+      onError: (error) {
+        debugPrint('Error watching contact groups: ${error.toString()}');
+      },
+    );
   }
 
   bool isDeleted(Contact contact) {
@@ -37,32 +42,62 @@ class ContactViewModel extends ChangeNotifier {
   }
 
   Future<void> deleteContact(Contact contact) async {
-    await _repository.deleteContact(contact.id);
+    try {
+      await _repository.deleteContact(contact.id);
+    } catch (e) {
+      debugPrint('Error deleting contact: ${e.toString()}');
+      rethrow;
+    }
   }
 
   Future<void> restoreContact(Contact contact) async {
-    await _repository.restoreContact(contact.id);
+    try {
+      await _repository.restoreContact(contact.id);
+    } catch (e) {
+      debugPrint('Error restoring contact: ${e.toString()}');
+      rethrow;
+    }
   }
 
   Future<void> permanentlyRemove(Contact contact) async {
-    await _repository.permanentlyRemoveContact(contact.id);
+    try {
+      await _repository.permanentlyRemoveContact(contact.id);
+    } catch (e) {
+      debugPrint('Error permanently removing contact: ${e.toString()}');
+      rethrow;
+    }
   }
 
   Future<void> addContact(String groupId, Contact contact) async {
-    debugPrint('Adding contact: ${contact.fullName} to group: $groupId');
-    await _repository.insertContact(contact, [groupId]);
+    try {
+      debugPrint('Adding contact: ${contact.fullName} to group: $groupId');
+      await _repository.insertContact(contact, [groupId]);
+    } catch (e) {
+      debugPrint('Error adding contact: ${e.toString()}');
+      rethrow;
+    }
   }
 
   Future<void> removeContact(String groupId, Contact contact) async {
-    // In this implementation, removeContact from group might mean deleting it
-    // or just removing the association. The repository doesn't have a specific
-    // method for removing from group yet, so we'll just delete for now or
-    // we could add it to the repository.
-    await _repository.deleteContact(contact.id);
+    try {
+      // In this implementation, removeContact from group might mean deleting it
+      // or just removing the association. The repository doesn't have a specific
+      // method for removing from group yet, so we'll just delete for now or
+      // we could add it to the repository.
+      await _repository.deleteContact(contact.id);
+    } catch (e) {
+      debugPrint('Error removing contact: ${e.toString()}');
+      rethrow;
+    }
   }
 
   Future<void> updateContact(Contact contact) async {
-    await _repository.updateContact(contact);
+    try {
+      await _repository.updateContact(contact);
+    } catch (e) {
+      debugPrint('Error updating contact: ${e.toString()}');
+      rethrow;
+    }
   }
 
   ContactGroup findContactList(String listId) {
@@ -73,7 +108,22 @@ class ContactViewModel extends ChangeNotifier {
   }
 
   ValidationResult validateContact(Contact contact, {String? excludeId}) {
-    // 1. Length Validations
+    // 1. Required Fields
+    if (contact.firstName.trim().isEmpty || contact.lastName.trim().isEmpty) {
+      return ValidationResult(
+        success: false,
+        errorMessage: 'First and last name are required',
+      );
+    }
+
+    if (contact.phoneNumber == null || contact.phoneNumber!.trim().isEmpty) {
+      return ValidationResult(
+        success: false,
+        errorMessage: 'Phone number is required',
+      );
+    }
+
+    // 2. Length Validations
     if (contact.firstName.length > 30 || contact.lastName.length > 30) {
       return ValidationResult(
         success: false,
@@ -81,14 +131,12 @@ class ContactViewModel extends ChangeNotifier {
       );
     }
 
-    if (contact.phoneNumber != null && contact.phoneNumber!.isNotEmpty) {
-      final phone = contact.phoneNumber!;
-      if (phone.length < 6 || phone.length > 10) {
-        return ValidationResult(
-          success: false,
-          errorMessage: 'Phone number must be between 6 and 10 digits',
-        );
-      }
+    final phone = contact.phoneNumber!.trim();
+    if (phone.length < 6 || phone.length > 15) {
+      return ValidationResult(
+        success: false,
+        errorMessage: 'Phone number must be between 6 and 15 digits',
+      );
     }
 
     if (contact.email != null && contact.email!.length > 250) {
@@ -98,10 +146,13 @@ class ContactViewModel extends ChangeNotifier {
       );
     }
 
-    // 2. Duplicate Checks
+    // 3. Duplicate Checks (Excluding soft-deleted contacts)
     final allGroups = listsNotifier.value;
     for (final group in allGroups) {
       for (final existing in group.contacts) {
+        // Skip soft-deleted records
+        if (existing.deletedAt != null) continue;
+        
         // Skip if it's the same contact we're editing
         if (excludeId != null && existing.id == excludeId) continue;
 
@@ -116,9 +167,7 @@ class ContactViewModel extends ChangeNotifier {
         }
 
         // Duplicate Phone Check
-        if (contact.phoneNumber != null &&
-            contact.phoneNumber!.isNotEmpty &&
-            existing.phoneNumber == contact.phoneNumber) {
+        if (existing.phoneNumber == contact.phoneNumber) {
           return ValidationResult(
             success: false,
             errorMessage:
@@ -131,15 +180,27 @@ class ContactViewModel extends ChangeNotifier {
     return ValidationResult(success: true);
   }
 
-  ValidationResult updateContactWithValidation(
+  Future<ValidationResult> updateContactWithValidation(
     Contact oldContact,
-    Contact newContact,
-  ) {
-    final validation = validateContact(newContact, excludeId: oldContact.id);
-    if (!validation.success) return validation;
+    Contact newContact, {
+    String? newGroupId,
+  }) async {
+    try {
+      final validation = validateContact(newContact, excludeId: oldContact.id);
+      if (!validation.success) return validation;
 
-    _repository.updateContact(newContact);
-    return ValidationResult(success: true);
+      await _repository.updateContact(newContact);
+      if (newGroupId != null) {
+        await _repository.updateContactGroups(newContact.id, [newGroupId]);
+      }
+      return ValidationResult(success: true);
+    } catch (e) {
+      debugPrint('Error in updateContactWithValidation: ${e.toString()}');
+      return ValidationResult(
+        success: false,
+        errorMessage: 'Database error: ${e.toString()}',
+      );
+    }
   }
 
   @override

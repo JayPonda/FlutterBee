@@ -35,6 +35,7 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
   Contact? _selectedContact;
 
   void _handleSectionChanged(NavigationSection section) {
+    if (!mounted) return;
     setState(() {
       _selectedSection = section;
       _selectedContact = null;
@@ -43,12 +44,14 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
   }
 
   void _handleContactSelected(Contact contact) {
+    if (!mounted) return;
     setState(() {
       _selectedContact = contact;
     });
   }
 
   void _handleGroupSelected(String groupId) {
+    if (!mounted) return;
     setState(() {
       _selectedSection = NavigationSection.allContacts;
       _selectedGroupId = groupId;
@@ -57,12 +60,14 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
   }
 
   void _handleBackToContacts() {
+    if (!mounted) return;
     setState(() {
       _selectedContact = null;
     });
   }
 
   void _handleContactUpdated(Contact oldContact, Contact newContact) {
+    if (!mounted) return;
     setState(() {
       if (_selectedContact?.id == oldContact.id) {
         _selectedContact = newContact;
@@ -71,6 +76,7 @@ class _AdaptiveLayoutState extends State<AdaptiveLayout> {
   }
 
   void _handleContactDeleted(Contact contact) {
+    if (!mounted) return;
     setState(() {
       if (_selectedContact?.id == contact.id) {
         _selectedContact = null;

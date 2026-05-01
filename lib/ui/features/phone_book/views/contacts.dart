@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:basics/domain/models/contact.dart';
 import 'package:basics/domain/models/contact_group.dart';
 import 'package:basics/ui/core/theme/app_theme.dart';
+import 'package:basics/ui/core/utils/url_helper.dart';
 import 'package:basics/ui/features/phone_book/view_models/contact_view_model.dart';
 import 'pages/contact_detail_page.dart';
 
@@ -190,6 +191,13 @@ class ContactListSection extends StatelessWidget {
                 CupertinoListTile(
                   padding: const EdgeInsets.all(0),
                   title: Text('${contact.firstName} ${contact.lastName}'),
+                  trailing: contact.phoneNumber != null && contact.phoneNumber!.isNotEmpty
+                      ? CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          child: const Icon(CupertinoIcons.phone_fill),
+                          onPressed: () => UrlHelper.makeCall(contact.phoneNumber!),
+                        )
+                      : null,
                   onTap: () {
                     // Navigate to contact detail page
                     Navigator.of(context).push(

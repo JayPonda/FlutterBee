@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:basics/domain/models/contact.dart';
 import 'package:basics/domain/models/contact_group.dart';
 import 'package:basics/ui/core/theme/app_theme.dart';
+import 'package:basics/ui/core/utils/url_helper.dart';
 import 'package:basics/ui/features/phone_book/view_models/contact_view_model.dart';
 import 'contact_detail_page.dart';
 
@@ -86,14 +87,20 @@ class _ContactsPageState extends State<ContactsPage> {
                   padding: EdgeInsets.zero,
                   child: const Icon(CupertinoIcons.add),
                   onPressed: () async {
-                    final newContact = await showCreateContactDialog(context);
-                    if (newContact != null && context.mounted) {
+                    final resultData = await showCreateContactDialog(
+                      context,
+                      initialGroupId: widget.listId,
+                    );
+                    if (resultData != null && context.mounted) {
+                      final newContact = resultData['contact'] as Contact;
+                      final selectedGroupId = resultData['groupId'] as String;
+                      
                       // Safety for Web: unfocus and small delay before DB update
                       FocusScope.of(context).unfocus();
                       await Future.delayed(const Duration(milliseconds: 100));
                       
                       if (context.mounted) {
-                        await viewModel.addContact(widget.listId, newContact);
+                        await viewModel.addContact(selectedGroupId, newContact);
                       }
                     }
                   },
@@ -103,9 +110,11 @@ class _ContactsPageState extends State<ContactsPage> {
                   suffixIcon: const Icon(CupertinoIcons.mic_fill),
                   suffixMode: OverlayVisibilityMode.always,
                   onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    }
                   },
                 ),
               ),
@@ -254,14 +263,20 @@ class _ContactsContentState extends State<ContactsContent> {
                   padding: EdgeInsets.zero,
                   child: const Icon(CupertinoIcons.add),
                   onPressed: () async {
-                    final newContact = await showCreateContactDialog(context);
-                    if (newContact != null && context.mounted) {
+                    final resultData = await showCreateContactDialog(
+                      context,
+                      initialGroupId: widget.listId,
+                    );
+                    if (resultData != null && context.mounted) {
+                      final newContact = resultData['contact'] as Contact;
+                      final selectedGroupId = resultData['groupId'] as String;
+                      
                       // Safety for Web: unfocus and small delay before DB update
                       FocusScope.of(context).unfocus();
                       await Future.delayed(const Duration(milliseconds: 100));
                       
                       if (context.mounted) {
-                        await viewModel.addContact(widget.listId, newContact);
+                        await viewModel.addContact(selectedGroupId, newContact);
                       }
                     }
                   },
@@ -269,9 +284,11 @@ class _ContactsContentState extends State<ContactsContent> {
                 searchField: CupertinoSearchTextField(
                   controller: _searchController,
                   onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    }
                   },
                 ),
               ),
@@ -356,7 +373,13 @@ class _ContactsContentState extends State<ContactsContent> {
               for (final contact in contacts)
                 CupertinoListTile(
                   title: Text(contact.fullName),
-                  trailing: const Icon(CupertinoIcons.chevron_right),
+                  trailing: contact.phoneNumber != null && contact.phoneNumber!.isNotEmpty
+                      ? CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          child: const Icon(CupertinoIcons.phone_fill),
+                          onPressed: () => UrlHelper.makeCall(contact.phoneNumber!),
+                        )
+                      : const Icon(CupertinoIcons.chevron_right),
                   onTap: () {
                     onContactSelected?.call(contact);
                   },
@@ -436,6 +459,12 @@ class _ContactListSection extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (contact.phoneNumber != null && contact.phoneNumber!.isNotEmpty)
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        child: const Icon(CupertinoIcons.phone_fill),
+                        onPressed: () => UrlHelper.makeCall(contact.phoneNumber!),
+                      ),
                   ],
                 ),
               ),
@@ -514,6 +543,12 @@ class ContactListSection extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (contact.phoneNumber != null && contact.phoneNumber!.isNotEmpty)
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        child: const Icon(CupertinoIcons.phone_fill),
+                        onPressed: () => UrlHelper.makeCall(contact.phoneNumber!),
+                      ),
                   ],
                 ),
               ),

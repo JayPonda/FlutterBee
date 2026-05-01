@@ -5,61 +5,137 @@ import 'package:provider/provider.dart';
 
 import 'package:basics/domain/models/contact.dart';
 import 'package:basics/ui/core/theme/app_theme.dart';
+import 'package:basics/ui/core/utils/url_helper.dart';
 import 'package:basics/ui/features/phone_book/view_models/contact_view_model.dart';
 
-Future<Contact?> showEditContactDialog(
+Future<Map<String, dynamic>?> showEditContactDialog(
   BuildContext context,
   Contact contact,
 ) async {
+  final viewModel = context.read<ContactViewModel>();
+  final groups = viewModel.listsNotifier.value;
+  
+  // Find current group ID (excluding the virtual "All Contacts" group)
+  String? currentGroupId;
+  for (final group in groups) {
+    if (group.id == '0') continue;
+    if (group.contacts.any((c) => c.id == contact.id)) {
+      currentGroupId = group.id;
+      break;
+    }
+  }
+  currentGroupId ??= groups.isNotEmpty ? groups.first.id : null;
+
   final firstNameController = TextEditingController(text: contact.firstName);
   final lastNameController = TextEditingController(text: contact.lastName);
   final phoneController = TextEditingController(
     text: contact.phoneNumber ?? '',
   );
   final emailController = TextEditingController(text: contact.email ?? '');
+  final selectedGroupIdNotifier = ValueNotifier<String>(currentGroupId ?? '');
 
-  final viewModel = context.read<ContactViewModel>();
-
-  final result = await showCupertinoDialog<Contact>(
+  final result = await showCupertinoDialog<Map<String, dynamic>>(
     context: context,
     builder: (context) => CupertinoAlertDialog(
       title: const Text('Edit Contact'),
       content: Padding(
         padding: const EdgeInsets.only(top: 16),
-        child: Column(
-          children: [
-            CupertinoTextField(
-              controller: firstNameController,
-              placeholder: 'First Name',
-              padding: const EdgeInsets.all(12),
-              textCapitalization: TextCapitalization.words,
-              maxLength: 30,
-            ),
-            const SizedBox(height: 8),
-            CupertinoTextField(
-              controller: lastNameController,
-              placeholder: 'Last Name',
-              padding: const EdgeInsets.all(12),
-              textCapitalization: TextCapitalization.words,
-              maxLength: 30,
-            ),
-            const SizedBox(height: 8),
-            CupertinoTextField(
-              controller: phoneController,
-              placeholder: 'Phone Number',
-              keyboardType: TextInputType.phone,
-              padding: const EdgeInsets.all(12),
-              maxLength: 10,
-            ),
-            const SizedBox(height: 8),
-            CupertinoTextField(
-              controller: emailController,
-              placeholder: 'Email',
-              keyboardType: TextInputType.emailAddress,
-              padding: const EdgeInsets.all(12),
-              maxLength: 250,
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CupertinoTextField(
+                controller: firstNameController,
+                placeholder: 'First Name *',
+                padding: const EdgeInsets.all(12),
+                textCapitalization: TextCapitalization.words,
+                maxLength: 30,
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: lastNameController,
+                placeholder: 'Last Name *',
+                padding: const EdgeInsets.all(12),
+                textCapitalization: TextCapitalization.words,
+                maxLength: 30,
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: phoneController,
+                placeholder: 'Phone Number *',
+                keyboardType: TextInputType.phone,
+                padding: const EdgeInsets.all(12),
+                maxLength: 15,
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: emailController,
+                placeholder: 'Email',
+                keyboardType: TextInputType.emailAddress,
+                padding: const EdgeInsets.all(12),
+                maxLength: 250,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Group',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              ValueListenableBuilder<String>(
+                valueListenable: selectedGroupIdNotifier,
+                builder: (context, selectedId, _) {
+                  return CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      FocusScope.of(context).unfocus();
+                      showCupertinoModalPopup(
+                        context: context,
+                        builder: (context) => CupertinoActionSheet(
+                          title: const Text('Select Group'),
+                          actions: groups
+                              .map(
+                                (g) => CupertinoActionSheetAction(
+                                  onPressed: () {
+                                    selectedGroupIdNotifier.value = g.id;
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text(g.title),
+                                ),
+                              )
+                              .toList(),
+                          cancelButton: CupertinoActionSheetAction(
+                            isDefaultAction: true,
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: CupertinoColors.systemGrey4),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            groups.firstWhere((g) => g.id == selectedId).title,
+                            style: TextStyle(color: context.primaryText),
+                          ),
+                          const Icon(CupertinoIcons.chevron_down, size: 16),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -75,16 +151,11 @@ Future<Contact?> showEditContactDialog(
             final phone = phoneController.text.trim();
             final email = emailController.text.trim();
 
-            if (firstName.isEmpty && lastName.isEmpty) {
-              _showValidationError(context, 'Please enter a name');
-              return;
-            }
-
             final tempContact = Contact(
               id: contact.id,
               firstName: firstName,
               lastName: lastName,
-              phoneNumber: phone.isEmpty ? null : phone,
+              phoneNumber: phone,
               email: email.isEmpty ? null : email,
             );
 
@@ -99,7 +170,10 @@ Future<Contact?> showEditContactDialog(
             }
 
             FocusScope.of(context).unfocus();
-            Navigator.pop(context, tempContact);
+            Navigator.pop(context, {
+              'contact': tempContact,
+              'groupId': selectedGroupIdNotifier.value,
+            });
           },
           child: const Text('Save'),
         ),
@@ -111,58 +185,128 @@ Future<Contact?> showEditContactDialog(
   lastNameController.dispose();
   phoneController.dispose();
   emailController.dispose();
+  selectedGroupIdNotifier.dispose();
 
   return result;
 }
 
-Future<Contact?> showCreateContactDialog(BuildContext context) async {
+Future<Map<String, dynamic>?> showCreateContactDialog(
+  BuildContext context, {
+  String? initialGroupId,
+}) async {
+  final viewModel = context.read<ContactViewModel>();
+  final groups = viewModel.listsNotifier.value;
+  
   final firstNameController = TextEditingController();
   final lastNameController = TextEditingController();
   final phoneController = TextEditingController();
   final emailController = TextEditingController();
+  final selectedGroupIdNotifier = ValueNotifier<String>(
+    initialGroupId ?? (groups.isNotEmpty ? groups.first.id : ''),
+  );
 
-  final viewModel = context.read<ContactViewModel>();
-
-  final result = await showCupertinoDialog<Contact>(
+  final result = await showCupertinoDialog<Map<String, dynamic>>(
     context: context,
     builder: (context) => CupertinoAlertDialog(
       title: const Text('New Contact'),
       content: Padding(
         padding: const EdgeInsets.only(top: 16),
-        child: Column(
-          children: [
-            CupertinoTextField(
-              controller: firstNameController,
-              placeholder: 'First Name',
-              padding: const EdgeInsets.all(12),
-              textCapitalization: TextCapitalization.words,
-              maxLength: 30,
-            ),
-            const SizedBox(height: 8),
-            CupertinoTextField(
-              controller: lastNameController,
-              placeholder: 'Last Name',
-              padding: const EdgeInsets.all(12),
-              textCapitalization: TextCapitalization.words,
-              maxLength: 30,
-            ),
-            const SizedBox(height: 8),
-            CupertinoTextField(
-              controller: phoneController,
-              placeholder: 'Phone Number',
-              keyboardType: TextInputType.phone,
-              padding: const EdgeInsets.all(12),
-              maxLength: 10,
-            ),
-            const SizedBox(height: 8),
-            CupertinoTextField(
-              controller: emailController,
-              placeholder: 'Email',
-              keyboardType: TextInputType.emailAddress,
-              padding: const EdgeInsets.all(12),
-              maxLength: 250,
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CupertinoTextField(
+                controller: firstNameController,
+                placeholder: 'First Name *',
+                padding: const EdgeInsets.all(12),
+                textCapitalization: TextCapitalization.words,
+                maxLength: 30,
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: lastNameController,
+                placeholder: 'Last Name *',
+                padding: const EdgeInsets.all(12),
+                textCapitalization: TextCapitalization.words,
+                maxLength: 30,
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: phoneController,
+                placeholder: 'Phone Number *',
+                keyboardType: TextInputType.phone,
+                padding: const EdgeInsets.all(12),
+                maxLength: 15,
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: emailController,
+                placeholder: 'Email',
+                keyboardType: TextInputType.emailAddress,
+                padding: const EdgeInsets.all(12),
+                maxLength: 250,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Group',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              ValueListenableBuilder<String>(
+                valueListenable: selectedGroupIdNotifier,
+                builder: (context, selectedId, _) {
+                  return CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      FocusScope.of(context).unfocus();
+                      showCupertinoModalPopup(
+                        context: context,
+                        builder: (context) => CupertinoActionSheet(
+                          title: const Text('Select Group'),
+                          actions: groups
+                              .map(
+                                (g) => CupertinoActionSheetAction(
+                                  onPressed: () {
+                                    selectedGroupIdNotifier.value = g.id;
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text(g.title),
+                                ),
+                              )
+                              .toList(),
+                          cancelButton: CupertinoActionSheetAction(
+                            isDefaultAction: true,
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: CupertinoColors.systemGrey4),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            groups.firstWhere((g) => g.id == selectedId).title,
+                            style: TextStyle(color: context.primaryText),
+                          ),
+                          const Icon(CupertinoIcons.chevron_down, size: 16),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -178,16 +322,11 @@ Future<Contact?> showCreateContactDialog(BuildContext context) async {
             final phone = phoneController.text.trim();
             final email = emailController.text.trim();
 
-            if (firstName.isEmpty && lastName.isEmpty) {
-              _showValidationError(context, 'Please enter a name');
-              return;
-            }
-
             final newContact = Contact(
               id: const Uuid().v4(),
               firstName: firstName,
               lastName: lastName,
-              phoneNumber: phone.isEmpty ? null : phone,
+              phoneNumber: phone,
               email: email.isEmpty ? null : email,
             );
 
@@ -199,7 +338,10 @@ Future<Contact?> showCreateContactDialog(BuildContext context) async {
             }
 
             FocusScope.of(context).unfocus();
-            Navigator.pop(context, newContact);
+            Navigator.pop(context, {
+              'contact': newContact,
+              'groupId': selectedGroupIdNotifier.value,
+            });
           },
           child: const Text('Save'),
         ),
@@ -211,6 +353,7 @@ Future<Contact?> showCreateContactDialog(BuildContext context) async {
   lastNameController.dispose();
   phoneController.dispose();
   emailController.dispose();
+  selectedGroupIdNotifier.dispose();
 
   return result;
 }
@@ -308,14 +451,16 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
     }
   }
 
-  void _handleRestore() {
+  Future<void> _handleRestore() async {
     final viewModel = context.read<ContactViewModel>();
-    viewModel.restoreContact(_currentContact);
-    widget.onContactUpdated?.call(_currentContact, _currentContact);
-    _showToast('Contact restored');
-    setState(() {
-      _isDeleted = false;
-    });
+    await viewModel.restoreContact(_currentContact);
+    if (mounted) {
+      widget.onContactUpdated?.call(_currentContact, _currentContact);
+      _showToast('Contact restored');
+      setState(() {
+        _isDeleted = false;
+      });
+    }
   }
 
   @override
@@ -368,6 +513,25 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                         color: context.primaryText,
                       ),
                     ),
+                    if (_currentContact.phoneNumber != null &&
+                        _currentContact.phoneNumber!.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      CupertinoButton(
+                        color: CupertinoColors.systemGreen,
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        borderRadius: BorderRadius.circular(24),
+                        onPressed: () =>
+                            UrlHelper.makeCall(_currentContact.phoneNumber!),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(CupertinoIcons.phone_fill, size: 20),
+                            SizedBox(width: 8),
+                            Text('Call'),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (_isDeleted) ...[
                       const SizedBox(height: 8),
                       Container(
@@ -410,7 +574,8 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                   icon: CupertinoIcons.phone_fill,
                   label: 'Phone',
                   value: _currentContact.phoneNumber!,
-                  onTap: () {
+                  onTap: () => UrlHelper.makeCall(_currentContact.phoneNumber!),
+                  onLongPress: () {
                     Clipboard.setData(
                       ClipboardData(text: _currentContact.phoneNumber!),
                     );
@@ -454,16 +619,20 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                       child: CupertinoButton(
                         color: CupertinoColors.systemBlue,
                         onPressed: () async {
-                          final updated = await showEditContactDialog(
+                          final resultData = await showEditContactDialog(
                             context,
                             _currentContact,
                           );
-                          if (updated != null && mounted) {
+                          if (resultData != null && mounted) {
+                            final updated = resultData['contact'] as Contact;
+                            final newGroupId = resultData['groupId'] as String;
+                            
                             final viewModel = context.read<ContactViewModel>();
-                            final result = viewModel
+                            final result = await viewModel
                                 .updateContactWithValidation(
                                   _currentContact,
                                   updated,
+                                  newGroupId: newGroupId,
                                 );
                             if (result.success) {
                               // Only update the UI state if the DB/Validation succeeded
@@ -513,9 +682,11 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
     required String label,
     required String value,
     VoidCallback? onTap,
+    VoidCallback? onLongPress,
   }) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
@@ -553,7 +724,7 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
             ),
             if (onTap != null)
               const Icon(
-                CupertinoIcons.doc_on_clipboard,
+                CupertinoIcons.chevron_right,
                 color: CupertinoColors.systemGrey,
                 size: 20,
               ),
@@ -680,7 +851,8 @@ class _ContactDetailContent extends StatelessWidget {
               icon: CupertinoIcons.phone_fill,
               label: 'Phone',
               value: contact.phoneNumber!,
-              onTap: () {
+              onTap: () => UrlHelper.makeCall(contact.phoneNumber!),
+              onLongPress: () {
                 Clipboard.setData(ClipboardData(text: contact.phoneNumber!));
                 _showSnackBar(context, 'Phone number copied');
               },
@@ -754,9 +926,11 @@ class _ContactDetailContent extends StatelessWidget {
     required String label,
     required String value,
     VoidCallback? onTap,
+    VoidCallback? onLongPress,
   }) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
@@ -794,7 +968,7 @@ class _ContactDetailContent extends StatelessWidget {
             ),
             if (onTap != null)
               const Icon(
-                CupertinoIcons.doc_on_clipboard,
+                CupertinoIcons.chevron_right,
                 color: CupertinoColors.systemGrey,
                 size: 20,
               ),

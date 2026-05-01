@@ -37,10 +37,10 @@ class Contact {
   /// Get the full name of the contact
   String get fullName => '$firstName $lastName';
 
-  /// Get the first letter of the last name for alphabetization
-  String get alphabeticalKey => lastName.isNotEmpty
-      ? lastName[0].toUpperCase()
-      : firstName[0].toUpperCase();
+  /// Get the first letter of the first name (or last name if first is missing) for alphabetization
+  String get alphabeticalKey => firstName.isNotEmpty
+      ? firstName[0].toUpperCase()
+      : (lastName.isNotEmpty ? lastName[0].toUpperCase() : '?');
 
   @override
   String toString() => 'Contact($fullName)';

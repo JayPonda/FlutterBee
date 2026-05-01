@@ -58,7 +58,7 @@ class _GroupsView extends StatelessWidget {
                         ),
                         title: Text(contactList.label),
                         trailing: _buildTrailing(
-                          contactList.contacts,
+                          contactList.activeContacts,
                           context,
                         ),
                         onTap: () => onListSelected(contactList),
@@ -130,7 +130,7 @@ class GroupsContent extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              group.contacts.length.toString(),
+                              group.activeContacts.length.toString(),
                               style: const TextStyle(
                                 color: CupertinoColors.systemGrey,
                                 fontWeight: FontWeight.w600,

@@ -236,12 +236,16 @@ class MasterDetailLayout extends StatelessWidget {
         contact: selectedContact!,
         onBack: onBackToContacts,
         onEdit: (oldContact) async {
-          final updated = await showEditContactDialog(context, oldContact);
-          if (updated != null && context.mounted) {
+          final resultData = await showEditContactDialog(context, oldContact);
+          if (resultData != null && context.mounted) {
+            final updated = resultData['contact'] as Contact;
+            final newGroupId = resultData['groupId'] as String;
+            
             // 1. Perform validation and DB update FIRST
-            final result = viewModel.updateContactWithValidation(
+            final result = await viewModel.updateContactWithValidation(
               oldContact,
               updated,
+              newGroupId: newGroupId,
             );
             
             // 2. Only if the DB update was successful, notify the UI

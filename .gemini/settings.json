@@ -1,0 +1,16 @@
+{
+  "skills": {
+    "disabled": [
+      "flutter-use-http-package",
+      "flutter-setup-localization",
+      "flutter-setup-declarative-routing",
+      "flutter-implement-json-serialization",
+      "flutter-add-widget-test",
+      "flutter-add-widget-preview",
+      "caveman",
+      "caveman-help",
+      "caveman-review",
+      "caveman-commit"
+    ]
+  }
+}
