@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:basics/data/database/app_database.dart';
 import 'package:basics/domain/models/contact.dart';
 import 'package:basics/domain/models/contact_group.dart';
+import 'package:basics/domain/models/recent_call.dart';
 import 'package:basics/domain/repositories/i_contact_repository.dart';
 
 class DriftContactRepository implements IContactRepository {
@@ -18,6 +19,35 @@ class DriftContactRepository implements IContactRepository {
     await for (final _ in _db.tableUpdates()) {
       yield await _fetchContactGroupsInternal();
     }
+  }
+
+  @override
+  Stream<List<RecentCall>> watchRecentCalls() async* {
+    final query = _db.select(_db.recents).join([
+      innerJoin(_db.contacts, _db.contacts.id.equalsExp(_db.recents.contactId)),
+    ])
+      ..orderBy([OrderingTerm.desc(_db.recents.calledAt)]);
+
+    yield* query.watch().map((rows) {
+      return rows.map((row) {
+        final recent = row.readTable(_db.recents);
+        final contact = row.readTable(_db.contacts);
+        return RecentCall(
+          id: recent.id,
+          contact: _mapContactEntryToDomain(contact),
+          calledAt: recent.calledAt,
+        );
+      }).toList();
+    });
+  }
+
+  @override
+  Future<void> addRecentCall(String contactId) async {
+    await _db.into(_db.recents).insert(
+          RecentsCompanion.insert(
+            contactId: contactId,
+          ),
+        );
   }
 
   Future<List<ContactGroup>> _fetchContactGroupsInternal() async {
@@ -56,9 +86,7 @@ class DriftContactRepository implements IContactRepository {
         ));
       }
       return contactGroups;
-    } catch (e, stack) {
-      print('Error in _fetchContactGroupsInternal: $e');
-      print(stack);
+    } catch (e) {
       rethrow;
     }
   }

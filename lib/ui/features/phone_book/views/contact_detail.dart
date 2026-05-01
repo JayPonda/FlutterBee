@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'package:basics/domain/models/contact.dart';
 import 'package:basics/ui/core/theme/app_theme.dart';
+import 'package:basics/ui/core/utils/dialog_helper.dart';
 import 'package:basics/ui/core/utils/url_helper.dart';
 import 'package:basics/ui/features/phone_book/view_models/contact_view_model.dart';
 
@@ -151,8 +152,18 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                         color: CupertinoColors.systemGreen,
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         borderRadius: BorderRadius.circular(24),
-                        onPressed: () =>
-                            UrlHelper.makeCall(_currentContact.phoneNumber!),
+                        onPressed: () async {
+                          final confirmed =
+                              await DialogHelper.showCallConfirmation(
+                            context,
+                            _currentContact.fullName,
+                          );
+                          if (confirmed && context.mounted) {
+                            final viewModel = context.read<ContactViewModel>();
+                            await viewModel.addRecentCall(_currentContact.id);
+                            UrlHelper.makeCall(_currentContact.phoneNumber!);
+                          }
+                        },
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: const [
@@ -204,7 +215,17 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                   icon: CupertinoIcons.phone_fill,
                   label: 'Phone',
                   value: _currentContact.phoneNumber!,
-                  onTap: () => UrlHelper.makeCall(_currentContact.phoneNumber!),
+                  onTap: () async {
+                    final confirmed = await DialogHelper.showCallConfirmation(
+                      context,
+                      _currentContact.fullName,
+                    );
+                    if (confirmed && context.mounted) {
+                      final viewModel = context.read<ContactViewModel>();
+                      await viewModel.addRecentCall(_currentContact.id);
+                      UrlHelper.makeCall(_currentContact.phoneNumber!);
+                    }
+                  },
                   onLongPress: () {
                     Clipboard.setData(
                       ClipboardData(text: _currentContact.phoneNumber!),

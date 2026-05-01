@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:basics/domain/models/contact.dart';
 import 'package:basics/domain/models/contact_group.dart';
+import 'package:basics/domain/models/recent_call.dart';
 import 'package:basics/domain/repositories/i_contact_repository.dart';
 
 /// Result of contact validation
@@ -17,12 +18,15 @@ class ValidationResult {
 class ContactViewModel extends ChangeNotifier {
   final IContactRepository _repository;
   final listsNotifier = ValueNotifier<List<ContactGroup>>([]);
+  final recentsNotifier = ValueNotifier<List<RecentCall>>([]);
   StreamSubscription? _subscription;
+  StreamSubscription? _recentsSubscription;
 
   IContactRepository get repository => _repository;
 
   ContactViewModel(this._repository) {
     _listenToRepository();
+    _listenToRecents();
   }
 
   void _listenToRepository() {
@@ -35,6 +39,26 @@ class ContactViewModel extends ChangeNotifier {
         debugPrint('Error watching contact groups: ${error.toString()}');
       },
     );
+  }
+
+  void _listenToRecents() {
+    _recentsSubscription = _repository.watchRecentCalls().listen(
+      (recents) {
+        recentsNotifier.value = recents;
+        notifyListeners();
+      },
+      onError: (error) {
+        debugPrint('Error watching recent calls: ${error.toString()}');
+      },
+    );
+  }
+
+  Future<void> addRecentCall(String contactId) async {
+    try {
+      await _repository.addRecentCall(contactId);
+    } catch (e) {
+      debugPrint('Error adding recent call: ${e.toString()}');
+    }
   }
 
   bool isDeleted(Contact contact) {
@@ -206,7 +230,9 @@ class ContactViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
+    _recentsSubscription?.cancel();
     listsNotifier.dispose();
+    recentsNotifier.dispose();
     super.dispose();
   }
 }

@@ -1,5 +1,6 @@
 import 'package:basics/domain/models/contact.dart';
 import 'package:basics/domain/models/contact_group.dart';
+import 'package:basics/domain/models/recent_call.dart';
 
 abstract class IContactRepository {
   Stream<List<ContactGroup>> watchContactGroups();
@@ -12,4 +13,7 @@ abstract class IContactRepository {
   
   Future<void> insertGroup(ContactGroup group);
   Future<void> deleteGroup(String groupId);
+
+  Stream<List<RecentCall>> watchRecentCalls();
+  Future<void> addRecentCall(String contactId);
 }

@@ -895,12 +895,264 @@ class ContactToGroupCompanion extends UpdateCompanion<ContactToGroupData> {
   }
 }
 
+class $RecentsTable extends Recents with TableInfo<$RecentsTable, RecentEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _contactIdMeta = const VerificationMeta(
+    'contactId',
+  );
+  @override
+  late final GeneratedColumn<String> contactId = GeneratedColumn<String>(
+    'contact_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES contacts (id)',
+    ),
+  );
+  static const VerificationMeta _calledAtMeta = const VerificationMeta(
+    'calledAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> calledAt = GeneratedColumn<DateTime>(
+    'called_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, contactId, calledAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recents';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RecentEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('contact_id')) {
+      context.handle(
+        _contactIdMeta,
+        contactId.isAcceptableOrUnknown(data['contact_id']!, _contactIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contactIdMeta);
+    }
+    if (data.containsKey('called_at')) {
+      context.handle(
+        _calledAtMeta,
+        calledAt.isAcceptableOrUnknown(data['called_at']!, _calledAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RecentEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecentEntry(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      contactId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contact_id'],
+      )!,
+      calledAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}called_at'],
+      )!,
+    );
+  }
+
+  @override
+  $RecentsTable createAlias(String alias) {
+    return $RecentsTable(attachedDatabase, alias);
+  }
+}
+
+class RecentEntry extends DataClass implements Insertable<RecentEntry> {
+  final int id;
+  final String contactId;
+  final DateTime calledAt;
+  const RecentEntry({
+    required this.id,
+    required this.contactId,
+    required this.calledAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['contact_id'] = Variable<String>(contactId);
+    map['called_at'] = Variable<DateTime>(calledAt);
+    return map;
+  }
+
+  RecentsCompanion toCompanion(bool nullToAbsent) {
+    return RecentsCompanion(
+      id: Value(id),
+      contactId: Value(contactId),
+      calledAt: Value(calledAt),
+    );
+  }
+
+  factory RecentEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecentEntry(
+      id: serializer.fromJson<int>(json['id']),
+      contactId: serializer.fromJson<String>(json['contactId']),
+      calledAt: serializer.fromJson<DateTime>(json['calledAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'contactId': serializer.toJson<String>(contactId),
+      'calledAt': serializer.toJson<DateTime>(calledAt),
+    };
+  }
+
+  RecentEntry copyWith({int? id, String? contactId, DateTime? calledAt}) =>
+      RecentEntry(
+        id: id ?? this.id,
+        contactId: contactId ?? this.contactId,
+        calledAt: calledAt ?? this.calledAt,
+      );
+  RecentEntry copyWithCompanion(RecentsCompanion data) {
+    return RecentEntry(
+      id: data.id.present ? data.id.value : this.id,
+      contactId: data.contactId.present ? data.contactId.value : this.contactId,
+      calledAt: data.calledAt.present ? data.calledAt.value : this.calledAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecentEntry(')
+          ..write('id: $id, ')
+          ..write('contactId: $contactId, ')
+          ..write('calledAt: $calledAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, contactId, calledAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecentEntry &&
+          other.id == this.id &&
+          other.contactId == this.contactId &&
+          other.calledAt == this.calledAt);
+}
+
+class RecentsCompanion extends UpdateCompanion<RecentEntry> {
+  final Value<int> id;
+  final Value<String> contactId;
+  final Value<DateTime> calledAt;
+  const RecentsCompanion({
+    this.id = const Value.absent(),
+    this.contactId = const Value.absent(),
+    this.calledAt = const Value.absent(),
+  });
+  RecentsCompanion.insert({
+    this.id = const Value.absent(),
+    required String contactId,
+    this.calledAt = const Value.absent(),
+  }) : contactId = Value(contactId);
+  static Insertable<RecentEntry> custom({
+    Expression<int>? id,
+    Expression<String>? contactId,
+    Expression<DateTime>? calledAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (contactId != null) 'contact_id': contactId,
+      if (calledAt != null) 'called_at': calledAt,
+    });
+  }
+
+  RecentsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? contactId,
+    Value<DateTime>? calledAt,
+  }) {
+    return RecentsCompanion(
+      id: id ?? this.id,
+      contactId: contactId ?? this.contactId,
+      calledAt: calledAt ?? this.calledAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (contactId.present) {
+      map['contact_id'] = Variable<String>(contactId.value);
+    }
+    if (calledAt.present) {
+      map['called_at'] = Variable<DateTime>(calledAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecentsCompanion(')
+          ..write('id: $id, ')
+          ..write('contactId: $contactId, ')
+          ..write('calledAt: $calledAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ContactsTable contacts = $ContactsTable(this);
   late final $GroupsTable groups = $GroupsTable(this);
   late final $ContactToGroupTable contactToGroup = $ContactToGroupTable(this);
+  late final $RecentsTable recents = $RecentsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -909,6 +1161,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     contacts,
     groups,
     contactToGroup,
+    recents,
   ];
 }
 
@@ -953,6 +1206,24 @@ final class $$ContactsTableReferences
     ).filter((f) => f.contactId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_contactToGroupRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$RecentsTable, List<RecentEntry>>
+  _recentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.recents,
+    aliasName: $_aliasNameGenerator(db.contacts.id, db.recents.contactId),
+  );
+
+  $$RecentsTableProcessedTableManager get recentsRefs {
+    final manager = $$RecentsTableTableManager(
+      $_db,
+      $_db.recents,
+    ).filter((f) => f.contactId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_recentsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -1014,6 +1285,31 @@ class $$ContactsTableFilterComposer
           }) => $$ContactToGroupTableFilterComposer(
             $db: $db,
             $table: $db.contactToGroup,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> recentsRefs(
+    Expression<bool> Function($$RecentsTableFilterComposer f) f,
+  ) {
+    final $$RecentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.recents,
+      getReferencedColumn: (t) => t.contactId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RecentsTableFilterComposer(
+            $db: $db,
+            $table: $db.recents,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -1117,6 +1413,31 @@ class $$ContactsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> recentsRefs<T extends Object>(
+    Expression<T> Function($$RecentsTableAnnotationComposer a) f,
+  ) {
+    final $$RecentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.recents,
+      getReferencedColumn: (t) => t.contactId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RecentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.recents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ContactsTableTableManager
@@ -1132,7 +1453,7 @@ class $$ContactsTableTableManager
           $$ContactsTableUpdateCompanionBuilder,
           (ContactEntry, $$ContactsTableReferences),
           ContactEntry,
-          PrefetchHooks Function({bool contactToGroupRefs})
+          PrefetchHooks Function({bool contactToGroupRefs, bool recentsRefs})
         > {
   $$ContactsTableTableManager(_$AppDatabase db, $ContactsTable table)
     : super(
@@ -1189,37 +1510,63 @@ class $$ContactsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({contactToGroupRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (contactToGroupRefs) db.contactToGroup,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (contactToGroupRefs)
-                    await $_getPrefetchedData<
-                      ContactEntry,
-                      $ContactsTable,
-                      ContactToGroupData
-                    >(
-                      currentTable: table,
-                      referencedTable: $$ContactsTableReferences
-                          ._contactToGroupRefsTable(db),
-                      managerFromTypedResult: (p0) => $$ContactsTableReferences(
-                        db,
-                        table,
-                        p0,
-                      ).contactToGroupRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.contactId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({contactToGroupRefs = false, recentsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (contactToGroupRefs) db.contactToGroup,
+                    if (recentsRefs) db.recents,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (contactToGroupRefs)
+                        await $_getPrefetchedData<
+                          ContactEntry,
+                          $ContactsTable,
+                          ContactToGroupData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ContactsTableReferences
+                              ._contactToGroupRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ContactsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).contactToGroupRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.contactId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (recentsRefs)
+                        await $_getPrefetchedData<
+                          ContactEntry,
+                          $ContactsTable,
+                          RecentEntry
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ContactsTableReferences
+                              ._recentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ContactsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).recentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.contactId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -1236,7 +1583,7 @@ typedef $$ContactsTableProcessedTableManager =
       $$ContactsTableUpdateCompanionBuilder,
       (ContactEntry, $$ContactsTableReferences),
       ContactEntry,
-      PrefetchHooks Function({bool contactToGroupRefs})
+      PrefetchHooks Function({bool contactToGroupRefs, bool recentsRefs})
     >;
 typedef $$GroupsTableCreateCompanionBuilder =
     GroupsCompanion Function({
@@ -1862,6 +2209,279 @@ typedef $$ContactToGroupTableProcessedTableManager =
       ContactToGroupData,
       PrefetchHooks Function({bool contactId, bool groupId})
     >;
+typedef $$RecentsTableCreateCompanionBuilder =
+    RecentsCompanion Function({
+      Value<int> id,
+      required String contactId,
+      Value<DateTime> calledAt,
+    });
+typedef $$RecentsTableUpdateCompanionBuilder =
+    RecentsCompanion Function({
+      Value<int> id,
+      Value<String> contactId,
+      Value<DateTime> calledAt,
+    });
+
+final class $$RecentsTableReferences
+    extends BaseReferences<_$AppDatabase, $RecentsTable, RecentEntry> {
+  $$RecentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ContactsTable _contactIdTable(_$AppDatabase db) => db.contacts
+      .createAlias($_aliasNameGenerator(db.recents.contactId, db.contacts.id));
+
+  $$ContactsTableProcessedTableManager get contactId {
+    final $_column = $_itemColumn<String>('contact_id')!;
+
+    final manager = $$ContactsTableTableManager(
+      $_db,
+      $_db.contacts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_contactIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$RecentsTableFilterComposer
+    extends Composer<_$AppDatabase, $RecentsTable> {
+  $$RecentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get calledAt => $composableBuilder(
+    column: $table.calledAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ContactsTableFilterComposer get contactId {
+    final $$ContactsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contactId,
+      referencedTable: $db.contacts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ContactsTableFilterComposer(
+            $db: $db,
+            $table: $db.contacts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RecentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecentsTable> {
+  $$RecentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get calledAt => $composableBuilder(
+    column: $table.calledAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ContactsTableOrderingComposer get contactId {
+    final $$ContactsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contactId,
+      referencedTable: $db.contacts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ContactsTableOrderingComposer(
+            $db: $db,
+            $table: $db.contacts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RecentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecentsTable> {
+  $$RecentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get calledAt =>
+      $composableBuilder(column: $table.calledAt, builder: (column) => column);
+
+  $$ContactsTableAnnotationComposer get contactId {
+    final $$ContactsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contactId,
+      referencedTable: $db.contacts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ContactsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.contacts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RecentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RecentsTable,
+          RecentEntry,
+          $$RecentsTableFilterComposer,
+          $$RecentsTableOrderingComposer,
+          $$RecentsTableAnnotationComposer,
+          $$RecentsTableCreateCompanionBuilder,
+          $$RecentsTableUpdateCompanionBuilder,
+          (RecentEntry, $$RecentsTableReferences),
+          RecentEntry,
+          PrefetchHooks Function({bool contactId})
+        > {
+  $$RecentsTableTableManager(_$AppDatabase db, $RecentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> contactId = const Value.absent(),
+                Value<DateTime> calledAt = const Value.absent(),
+              }) => RecentsCompanion(
+                id: id,
+                contactId: contactId,
+                calledAt: calledAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String contactId,
+                Value<DateTime> calledAt = const Value.absent(),
+              }) => RecentsCompanion.insert(
+                id: id,
+                contactId: contactId,
+                calledAt: calledAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$RecentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({contactId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (contactId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.contactId,
+                                referencedTable: $$RecentsTableReferences
+                                    ._contactIdTable(db),
+                                referencedColumn: $$RecentsTableReferences
+                                    ._contactIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$RecentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RecentsTable,
+      RecentEntry,
+      $$RecentsTableFilterComposer,
+      $$RecentsTableOrderingComposer,
+      $$RecentsTableAnnotationComposer,
+      $$RecentsTableCreateCompanionBuilder,
+      $$RecentsTableUpdateCompanionBuilder,
+      (RecentEntry, $$RecentsTableReferences),
+      RecentEntry,
+      PrefetchHooks Function({bool contactId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1872,4 +2492,6 @@ class $AppDatabaseManager {
       $$GroupsTableTableManager(_db, _db.groups);
   $$ContactToGroupTableTableManager get contactToGroup =>
       $$ContactToGroupTableTableManager(_db, _db.contactToGroup);
+  $$RecentsTableTableManager get recents =>
+      $$RecentsTableTableManager(_db, _db.recents);
 }

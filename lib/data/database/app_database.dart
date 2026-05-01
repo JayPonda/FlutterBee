@@ -38,12 +38,19 @@ class ContactToGroup extends Table {
   Set<Column> get primaryKey => {contactId, groupId};
 }
 
-@DriftDatabase(tables: [Contacts, Groups, ContactToGroup])
+@DataClassName('RecentEntry')
+class Recents extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get contactId => text().references(Contacts, #id)();
+  DateTimeColumn get calledAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+@DriftDatabase(tables: [Contacts, Groups, ContactToGroup, Recents])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -56,6 +63,9 @@ class AppDatabase extends _$AppDatabase {
           // Clear existing dummy data if upgrading from version 1
           await customStatement('DELETE FROM contacts;');
           await customStatement('DELETE FROM contact_to_group;');
+        }
+        if (from < 3) {
+          await m.createTable(recents);
         }
       },
     );
